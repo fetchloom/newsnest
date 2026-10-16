@@ -1,13 +1,26 @@
 # Freepost
 
-Email API and newsletter platform in one. Free, self-hosted, no dependencies.
+**Start a newsletter you own.** Freepost is a free, open-source newsletter platform and email API in one. Write in a block editor, grow your list with forms, referrals and polls, automate welcome emails, publish a website, and see opens and clicks live. No monthly fee, no cut of your earnings, no subscriber limits, and your list stays in a single file you control.
 
-Needs Node 24+. No dependencies.
+It is the pieces of [Beehiiv](https://www.beehiiv.com) (writing, growing, analytics) and [Resend](https://resend.com) (a developer email API) in one program with no dependencies.
+
+- Needs [Node 24](https://nodejs.org) or newer. Nothing to install.
+- Setting it up on a server: [docs/self-hosting.md](docs/self-hosting.md), with Docker and HTTPS.
+- What is and isn't included: [docs/features.md](docs/features.md).
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
+
+## Try it in a minute
 
 ```sh
-node server.ts          # landing page, API and dashboard on http://127.0.0.1:8700
-node --test test/*.test.ts             # tests: a fake SMTP server and a fake DOM, no real mail sent, no browser
-node build.ts           # static landing page and dashboard files into dist/
+git clone https://github.com/fetchloom/freepost && cd freepost
+node server.ts          # then open http://127.0.0.1:8700/app/ and choose a password
+```
+
+Out of the box it saves emails as files instead of sending them, so you can explore safely. To send real email, connect an SMTP service or send directly from a server (see below).
+
+```sh
+node --test test/*.test.ts   # the tests: a fake mail server and a fake browser, no real mail sent
+node build.ts                # static landing page and dashboard files into dist/
 ```
 
 ## Dashboard

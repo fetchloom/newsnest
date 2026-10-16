@@ -25,6 +25,12 @@ export async function overview(): Promise<HTMLElement> {
     pageHead("Overview", "What your instance has been doing.", h("a", { class: "btn btn-solid", href: "#/send" }, "Send an email")),
     settings.mode === "outbox" && h("div", { class: "notice warn" }, modeNote.outbox),
 
+    !finished && h("div", { class: "card" },
+      h("div", { class: "card-head" }, h("h2", {}, "Get set up")),
+      h("ul", { class: "checklist" }, steps.map(([label, href, done]) =>
+        h("li", { class: done ? "done" : "" }, h("span", { class: "tick" }), h("a", { href }, label)))),
+    ),
+
     h("div", { class: "stats-grid" },
       stat(audience.totals.active, "Active subscribers"),
       stat(audience.growth.reduce((sum: number, g: { net: number }) => sum + g.net, 0), "Net new in 14 days"),
@@ -38,12 +44,6 @@ export async function overview(): Promise<HTMLElement> {
         s.series.map((x: { date: string; count: number }, i: number) =>
           h("div", { class: "bar", title: `${x.date}: ${x.count}` }, h("i", { class: x.count ? "" : "zero", style: `height:${Math.max(2, (x.count / max) * 100)}%;--i:${i}` })))),
       h("div", { class: "chart-axis" }, h("span", {}, s.series[0].date.slice(5)), h("span", {}, s.series[s.series.length - 1].date.slice(5))),
-    ),
-
-    !finished && h("div", { class: "card" },
-      h("div", { class: "card-head" }, h("h2", {}, "Get set up")),
-      h("ul", { class: "checklist" }, steps.map(([label, href, done]) =>
-        h("li", { class: done ? "done" : "" }, h("span", { class: "tick" }), h("a", { href }, label)))),
     ),
 
     h("div", { class: "card" },

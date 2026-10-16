@@ -11,6 +11,8 @@ import { formsPage } from "./forms.js";
 import { keysPage } from "./keys.js";
 import { startLive, stopLive } from "./live.js";
 import { overview } from "./overview.js";
+import { openPalette } from "./palette.js";
+import type { Command } from "./palette.js";
 import { newPost, postEditor, postsList } from "./posts.js";
 import { referralsPage } from "./referrals.js";
 import { segmentEditor, segmentsList } from "./segments.js";
@@ -110,23 +112,46 @@ async function shell(): Promise<void> {
   });
   const settings = await api("GET", "/settings");
 
-  const theme = h("button", { class: "nav-item", type: "button", onclick: () => {
+  const theme = h("button", { class: "nav-item", type: "button", onclick: () => toggleTheme() }, icon("M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"), "Toggle theme");
+  const out = h("button", { class: "nav-item", type: "button", onclick: () => void signOut() }, icon("M9 4H5v16h4", "M16 8l4 4-4 4", "M20 12H9"), "Sign out");
+
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const searchBtn = h("button", { class: "search-btn", type: "button", onclick: () => openPalette(commands) }, icon("M11 4a7 7 0 100 14 7 7 0 000-14z", "M20 20l-4-4"), h("span", {}, "Jump to…"), h("kbd", {}, mac ? "⌘K" : "Ctrl K"));
+  const menuBtn = h("button", { class: "menu-btn", type: "button", "aria-label": "Menu", "aria-expanded": "false", onclick: () => {
+    const open = document.getElementById("side")!.classList.toggle("open");
+    menuBtn.setAttribute("aria-expanded", String(open));
+  } }, icon("M4 7h16M4 12h16M4 17h16"));
+  const toggleTheme = (): void => {
     const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("theme", next); } catch { /* storage blocked */ }
-  } }, icon("M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"), "Toggle theme");
-  const out = h("button", { class: "nav-item", type: "button", onclick: async () => { await api("POST", "/auth/logout", {}); location.hash = ""; void boot(); } }, icon("M9 4H5v16h4", "M16 8l4 4-4 4", "M20 12H9"), "Sign out");
+  };
+  const signOut = async (): Promise<void> => { await api("POST", "/auth/logout", {}); location.hash = ""; void boot(); };
+  const commands: Command[] = [
+    ...NAV.flatMap(({ items }) => items.map(([label, path]): Command => ({ label, hint: "Page", run: () => { location.hash = `#/${path}`; } }))),
+    { label: "New post", hint: "Action", run: () => { location.hash = "#/posts/new"; } },
+    { label: "New segment", hint: "Action", run: () => { location.hash = "#/segments/new"; } },
+    { label: "Toggle dark mode", hint: "Action", run: toggleTheme },
+    { label: "Sign out", hint: "Action", run: () => void signOut() },
+  ];
+  addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(commands); } });
 
   replace(root, h("div", { class: "app" },
-    h("aside", { class: "side" }, logo(), ...navEls, h("div", { class: "side-foot" }, h("div", { class: "mode-pill" }, "mode ", h("b", {}, settings.mode)), theme, out)),
+    h("aside", { class: "side", id: "side" }, logo(), menuBtn, searchBtn, ...navEls, h("div", { class: "side-foot" }, h("div", { class: "mode-pill" }, "mode ", h("b", {}, settings.mode)), theme, out)),
     main));
 
+  const progress = h("div", { class: "progress" });
+  document.body.append(progress);
   let token = 0;
   let stale = false;
   let renderedAt = Date.now();
   const render = async (live = false): Promise<void> => {
     const mine = ++token;
     const section = parseHash(location.hash).parts[0] ?? "";
+    const label = links.find((a) => a.dataset.path === section)?.textContent;
+    document.title = label && section ? `${label} · Freepost` : "Freepost";
+    if (!live) { document.getElementById("side")?.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
+    const slow = live ? 0 : window.setTimeout(() => progress.classList.add("on"), 180); // only show the bar if the page is slow
     links.forEach((a) => { if (a.dataset.path === section) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     for (const sec of sections) if (sec.items.some((a) => a.dataset.path === section)) { sec.el.classList.remove("collapsed"); sec.head.setAttribute("aria-expanded", "true"); } // never hide the current page
     try {
@@ -147,6 +172,9 @@ async function shell(): Promise<void> {
       if (mine !== token) return;
       if (live) return; // a failed background refresh keeps what is on screen
       replace(main, h("div", { class: "view" }, h("div", { class: "notice bad" }, (e as Error).message)));
+    } finally {
+      clearTimeout(slow);
+      if (mine === token) progress.classList.remove("on");
     }
   };
   addEventListener("hashchange", () => void render());

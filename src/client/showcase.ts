@@ -9,16 +9,15 @@ const EVENTS = [
   "Referral reward earned: Sticker pack",
 ];
 
-/** The dashboard mock-up cycles through the kinds of toast the real dashboard raises. */
+/** The dashboard mock-ups cycle through the kinds of toast the real dashboard raises. */
 export function initShowcase(): void {
-  const box = document.getElementById("toasts");
-  if (!box || reducedMotion) return;
-  onceVisible(box, async () => {
-    for (let i = 1; ; i = (i + 1) % EVENTS.length) {
+  if (reducedMotion) return;
+  document.querySelectorAll<HTMLElement>("[data-toasts]").forEach((box, n) => onceVisible(box, async () => {
+    for (let i = 1 + n * 3; ; i = (i + 1) % EVENTS.length) {
       await sleep(3200);
       const toast = document.createElement("span");
       toast.textContent = EVENTS[i];
       box.replaceChildren(toast);
     }
-  }, 0.5);
+  }, 0.5));
 }

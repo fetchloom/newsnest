@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { before, describe, test } from "node:test";
-import { byText, installDom } from "./dom-shim.ts";
+import { byText, find, installDom, type } from "./dom-shim.ts";
 
 registerHooks({
   resolve(specifier, context, next) {
@@ -70,5 +70,22 @@ describe("custom dialogs", () => {
     assert.equal(when.value, "2030-01-02T09:30");
     when.disabled = true;
     assert.equal(when.disabled, true);
+  });
+});
+
+describe("jump-to palette", () => {
+  test("filters commands as you type and runs the one you pick", async () => {
+    installDom();
+    const { openPalette } = await import("../src/client/app/palette.ts");
+    const ran: string[] = [];
+    const commands = ["Posts", "Subscribers", "New post"].map((label) => ({ label, run: () => { ran.push(label); } }));
+    openPalette(commands);
+    const body = document.body as any;
+    assert.equal(body.querySelectorAll(".palette-item").length, 3);
+    type(find(body, ".palette-input"), "sub");
+    assert.deepEqual(body.querySelectorAll(".palette-item").map((e: any) => e.textContent), ["Subscribers"]);
+    body.querySelectorAll(".palette-item")[0].click();
+    assert.deepEqual(ran, ["Subscribers"]);
+    assert.equal(body.querySelectorAll(".palette-back").length, 0, "closes after running");
   });
 });
