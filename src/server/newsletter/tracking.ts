@@ -9,7 +9,8 @@ import { token } from "./util.ts";
 /** Security scanners and link previewers fetch every link in a message. Their clicks aren't a person reading it. */
 const BOT_UA = /(barracuda|proofpoint|mimecast|microsoft office|safelinks|bingpreview|googlebot|\bbot\b|crawler|spider|curl\/|wget|python-requests|java\/|go-http-client|headlesschrome|slackbot|facebookexternalhit|linkedinbot|twitterbot|skypeuripreview|mailscanner|trend micro|symantec|forcepoint|cisco|urlscan|zscaler|ironscales|avanan)/i;
 const MOBILE_UA = /(iphone|ipad|android|mobile)/i;
-const SKIP_PATH = /^\/(u|confirm|magic|poll|s|l|o|subscribe|login)(\/|$)/;
+// Links back into the site that are not a reader's own choice of destination (including "View in browser") are never rewritten.
+const SKIP_PATH = /^\/(u|confirm|magic|poll|s|l|o|p|subscribe|login)(\/|$)/;
 
 const linkCache = new Map<string, string>();
 

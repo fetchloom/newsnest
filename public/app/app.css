@@ -345,3 +345,20 @@ kbd { font: 500 10.5px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--
   .nav-group::after { display: none; }
   .main { padding-top: 24px; }
 }
+
+/* ---------- Email designs ---------- */
+.designs { --s: .27; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.designs.wide { --s: .3; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.design-card { display: grid; gap: 4px; align-content: start; text-align: left; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); color: var(--fg); font: inherit; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.design-card:hover { border-color: var(--line-strong); }
+.design-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.design-card b { font-size: 14px; margin-top: 6px; }
+.design-card span { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.design-thumb { position: relative; height: 150px; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.design-thumb iframe { position: absolute; top: 0; left: 0; width: 640px; height: 700px; border: 0; transform: scale(var(--s)); transform-origin: top left; pointer-events: none; background: #fff; }
+.plain-thumb { display: grid; place-items: center; color: var(--muted); }
+.plain-thumb svg { width: 28px; height: 28px; }
+.design-card[aria-pressed="true"] .plain-thumb { color: var(--accent); }
+.html-area { min-height: 520px; font-size: 12.5px; line-height: 1.6; tab-size: 2; white-space: pre; overflow: auto; }
+.warn-text { color: var(--warn); }
+@media (max-width: 860px) { .designs.wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

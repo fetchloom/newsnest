@@ -63,7 +63,7 @@ const ROUTES: Route[] = [
 ];
 
 /** Path prefixes owned by the API, so the static site and API can share a port. */
-const API_PREFIX = /^\/(emails|domains|api-keys|webhooks|suppressions|stats|settings|preview|auth|health|publication|subscribers|segments|fields|posts|templates|pages|polls|surveys|automations|rewards|referrals|analytics|uploads|events|forms)(\/|$)/;
+const API_PREFIX = /^\/(emails|domains|api-keys|webhooks|suppressions|stats|settings|preview|auth|health|publication|subscribers|segments|fields|posts|templates|pages|polls|surveys|automations|rewards|referrals|analytics|uploads|events|forms|designs)(\/|$)/;
 export const isApiPath = (pathname: string): boolean => API_PREFIX.test(pathname);
 
 // ---- rate limiting (token bucket per API key, in memory) ----------------------

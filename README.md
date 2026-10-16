@@ -96,6 +96,7 @@ Everything in the dashboard sidebar under Publish, Audience and Grow.
 
 | | |
 | --- | --- |
+| **Designs** | Four email designs: Plain, and three free ones (Editorial, Modern, Bold), applied in your brand colour. Set a default in Settings, or choose per post. Or write the whole email yourself: paste or upload a complete `.html` file, with merge tags, click and open tracking, and an unsubscribe link and postal address added if your file lacks one. Custom HTML posts are email-only. |
 | **Posts** | Block editor with drag-and-drop: text (Markdown), heading, image (upload or link), button, divider, spacer, quote, list, code, HTML, social links, poll, survey, referral box, subscribe box, and dynamic blocks that only some subscribers see. Templates, merge tags (`{{first_name \| friend}}`), live email and website preview, test emails, autosave. |
 | **Sending** | Send now or schedule. Audience is everyone, a tag, or a segment. A/B tests on subject lines (test group, wait, winner goes to the rest). Paced with `NEWSNEST_SEND_RATE`. Every email has one-click unsubscribe headers and a postal-address footer. |
 | **Subscribers** | Double opt-in, welcome email, tags, custom fields, CSV import and export, activity history, engagement levels (new, active, at risk, inactive). |

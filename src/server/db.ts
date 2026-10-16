@@ -384,6 +384,12 @@ const MIGRATIONS: string[] = [
   CREATE INDEX emails_subscriber ON emails(subscriber_id);
   CREATE INDEX events_type ON events(type, created_at);
   `,
+  // 4: email designs, and posts written as raw HTML
+  `
+  ALTER TABLE posts ADD COLUMN design TEXT NOT NULL DEFAULT '';          -- '' = the publication's design | plain | editorial | modern | bold | custom
+  ALTER TABLE posts ADD COLUMN custom_html TEXT NOT NULL DEFAULT '';
+  ALTER TABLE publication ADD COLUMN design TEXT NOT NULL DEFAULT 'modern';
+  `,
 ];
 
 export function openDb(file: string): DB {

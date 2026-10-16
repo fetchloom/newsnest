@@ -174,6 +174,49 @@ describe("interactions", () => {
     assert.equal((await h.call("GET", `/posts/${ids.draft}`)).json.status === "draft", false);
   });
 
+  test("choosing a design for a post and writing your own HTML both save", async () => {
+    const post = (await h.call("POST", "/posts", { title: "Design test", blocks: [{ type: "text", props: { markdown: "Hi" } }] })).json;
+    const el = await go(`#/posts/${post.id}`);
+    byText(el, "button", "Design").click();
+    const cards = el.querySelectorAll(".design-card");
+    assert.deepEqual(cards.map((c) => textOf(c.querySelector("b")!)), ["Use my default", "Plain", "Editorial", "Modern", "Bold", "Your own HTML"]);
+
+    cards[2].click(); // Editorial
+    await sleep(1100);
+    assert.equal((await h.call("GET", `/posts/${post.id}`)).json.design, "editorial");
+    assert.equal(cards[2].getAttribute("aria-pressed"), "true");
+    assert.equal(cards[1].getAttribute("aria-pressed"), "false");
+
+    cards[5].click(); // Your own HTML
+    assert.equal(el.querySelectorAll(".html-area").length, 1, "the HTML editor replaces the block editor");
+    assert.equal(el.querySelectorAll(".block").length, 0);
+    byText(el, "button", "Insert a starter").click();
+    await sleep(1100);
+    const saved = (await h.call("GET", `/posts/${post.id}`)).json;
+    assert.equal(saved.design, "custom");
+    assert.match(saved.custom_html, /Hello \{\{first_name \| there\}\}/);
+    assert.equal(saved.web_enabled, false);
+
+    type(find(el, ".html-area"), "<p>Typed by hand</p>");
+    await sleep(1100);
+    assert.equal((await h.call("GET", `/posts/${post.id}`)).json.custom_html, "<p>Typed by hand</p>");
+
+    cards[3].click(); // back to a design: the block editor returns
+    assert.equal(el.querySelectorAll(".html-area").length, 0);
+  });
+
+  test("the default design is chosen in Settings", async () => {
+    const el = await go("#/settings");
+    const cards = el.querySelectorAll(".design-card");
+    assert.deepEqual(cards.map((c) => textOf(c.querySelector("b")!)), ["Plain", "Editorial", "Modern", "Bold"]);
+    cards[3].click();
+    await sleep(300);
+    assert.equal((await h.call("GET", "/publication")).json.design, "bold");
+    cards[2].click();
+    await sleep(300);
+    assert.equal((await h.call("GET", "/publication")).json.design, "modern");
+  });
+
   test("adding a subscriber through the dialog", async () => {
     const el = await go("#/subscribers");
     byText(el, "button", "Add subscriber").click();

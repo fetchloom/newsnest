@@ -6,7 +6,7 @@ import { automationStats, createAutomation, deleteAutomation, getAutomation, lis
 import { baseUrl, getPublication, isLocalUrl, updatePublication } from "./publication.ts";
 import { createPage, deletePage, getPage, listPages, updatePage } from "./pages.ts";
 import { createPoll, deletePoll, getPoll, listPolls, updatePoll, createSurvey, deleteSurvey, getSurvey, listSurveys, surveyCsv, surveyResults, updateSurvey } from "./polls.ts";
-import { createPost, deletePost, deleteTemplate, duplicatePost, getPost, listPosts, listTemplates, previewPost, saveTemplate, schedulePost, sendTest, setPublished, unschedulePost, updatePost } from "./posts.ts";
+import { createPost, deletePost, deleteTemplate, designSample, duplicatePost, getPost, listDesigns, listPosts, listTemplates, previewPost, saveTemplate, schedulePost, sendTest, setPublished, unschedulePost, updatePost } from "./posts.ts";
 import { createReward, deleteReward, fulfillClaim, listClaims, listRewards, referralOverview, updateReward } from "./referrals.ts";
 import { FIELD_CATALOG, changeMembers, createSegment, deleteSegment, getSegment, listSegments, previewRules, snapshotSegment, updateSegment } from "./segments.ts";
 import { createSubscriber, deleteSubscriber, exportCsv, findById, importCsv, listFieldDefs, listSubscribers, listTags, saveFieldDef, subscriberActivity, subscriberView, updateSubscriber } from "./subscribers.ts";
@@ -79,6 +79,8 @@ export const newsletterRoutes: Route[] = [
   }),
   route("POST", "/posts/:id/test", (c) => { const r = sendTest(c.db, c.cfg, c.params[0], obj(c.body)); c.kick(); return ok(r); }),
   route("GET", "/posts/:id/stats", (c) => ok(postStats(c.db, c.params[0]))),
+  route("GET", "/designs", () => ok(listDesigns())),
+  route("POST", "/designs/sample", (c) => ok(designSample(c.db, c.cfg, obj(c.body).design))),
   route("GET", "/templates", (c) => ok(listTemplates(c.db))),
   route("POST", "/templates", (c) => ok(saveTemplate(c.db, obj(c.body)), 201)),
   route("DELETE", "/templates/:id", (c) => ok(deleteTemplate(c.db, c.params[0]))),

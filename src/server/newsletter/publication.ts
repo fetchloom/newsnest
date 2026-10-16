@@ -1,3 +1,5 @@
+import { DESIGN_IDS } from "./designs.ts";
+import type { DesignId } from "./designs.ts";
 import type { Config } from "../config.ts";
 import type { DB } from "../db.ts";
 import { validation } from "../errors.ts";
@@ -9,7 +11,7 @@ export interface Publication {
   name: string; description: string; slug: string;
   from_name: string; from_email: string; reply_to: string;
   site_url: string; site_domain: string; address: string;
-  brand_color: string; font: "sans" | "serif" | "mono"; logo_url: string; footer: string;
+  brand_color: string; font: "sans" | "serif" | "mono"; design: DesignId; logo_url: string; footer: string;
   double_opt_in: boolean; welcome_enabled: boolean; welcome_subject: string; welcome_body: string;
   track_opens: boolean; track_clicks: boolean; utm_links: boolean; referral_enabled: boolean;
   nav: { label: string; url: string }[];
@@ -63,6 +65,7 @@ export function updatePublication(db: DB, body: Record<string, unknown>): Public
     next.brand_color = v.toLowerCase();
   }
   { const v = oneOf(body.font, "font", ["sans", "serif", "mono"] as const); if (v) next.font = v; }
+  { const v = oneOf(body.design, "design", DESIGN_IDS); if (v) next.design = v; }
   for (const k of BOOLS) { const v = flag(body[k], k); if (v !== undefined) next[k] = v; }
 
   if (body.nav !== undefined) {
@@ -77,10 +80,10 @@ export function updatePublication(db: DB, body: Record<string, unknown>): Public
 
   const n = next as unknown as Publication;
   db.prepare(`UPDATE publication SET name=?, description=?, slug=?, from_name=?, from_email=?, reply_to=?, site_url=?, site_domain=?, address=?,
-    brand_color=?, font=?, logo_url=?, footer=?, double_opt_in=?, welcome_enabled=?, welcome_subject=?, welcome_body=?, track_opens=?, track_clicks=?,
+    brand_color=?, font=?, design=?, logo_url=?, footer=?, double_opt_in=?, welcome_enabled=?, welcome_subject=?, welcome_body=?, track_opens=?, track_clicks=?,
     utm_links=?, referral_enabled=?, nav=?, seo_title=?, seo_description=?, og_image_url=?, updated_at=? WHERE id = 1`).run(
     n.name, n.description, n.slug, n.from_name, n.from_email, n.reply_to, n.site_url, n.site_domain, n.address,
-    n.brand_color, n.font, n.logo_url, n.footer, +n.double_opt_in, +n.welcome_enabled, n.welcome_subject, n.welcome_body, +n.track_opens, +n.track_clicks,
+    n.brand_color, n.font, n.design, n.logo_url, n.footer, +n.double_opt_in, +n.welcome_enabled, n.welcome_subject, n.welcome_body, +n.track_opens, +n.track_clicks,
     +n.utm_links, +n.referral_enabled, JSON.stringify(n.nav), n.seo_title, n.seo_description, n.og_image_url, now());
   return getPublication(db);
 }

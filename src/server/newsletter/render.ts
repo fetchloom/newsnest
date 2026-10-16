@@ -2,6 +2,8 @@ import type { DB } from "../db.ts";
 import { esc, defaultStyles, render as markdown, toText } from "../markdown.ts";
 import type { Styles } from "../markdown.ts";
 import type { Block } from "./blocks.ts";
+import { composeEmail, contrastText, fontStack, isDesignId, tokens } from "./designs.ts";
+import type { DesignId, Tokens } from "./designs.ts";
 import type { Publication } from "./publication.ts";
 import type { SubscriberRow } from "./subscribers.ts";
 import { parseJson } from "./util.ts";
@@ -17,24 +19,19 @@ export interface RenderCtx {
   dynamic: Map<string, Set<string>>;
   /** Editor previews show every dynamic block instead of hiding the ones this reader doesn't match. */
   showAllDynamic?: boolean;
+  /** Set while rendering an email so blocks pick up the design's colours and type. */
+  design?: Tokens;
 }
 
 interface Pal { text: string; muted: string; line: string; surface: string; bg: string }
 const EMAIL_PAL: Pal = { text: "#27272a", muted: "#71717a", line: "#e4e4e7", surface: "#f4f4f5", bg: "#ffffff" };
 const WEB_PAL: Pal = { text: "var(--fg)", muted: "var(--muted)", line: "var(--line)", surface: "var(--surface)", bg: "var(--bg)" };
-const pal = (c: RenderCtx): Pal => (c.mode === "email" ? EMAIL_PAL : WEB_PAL);
+const pal = (c: RenderCtx): Pal => (c.mode !== "email" ? WEB_PAL : c.design ? { text: c.design.text, muted: c.design.muted, line: c.design.line, surface: c.design.soft, bg: c.design.card } : EMAIL_PAL);
+const bodyFont = (c: RenderCtx): string => c.design?.font ?? fontStack(c.pub.font);
+const headFont = (c: RenderCtx): string => c.design?.headFont ?? fontStack(c.pub.font);
+const btnRadius = (c: RenderCtx): string => c.design?.button ?? "8px";
 
-export const fontStack = (f: Publication["font"]): string =>
-  f === "serif" ? "Georgia,'Times New Roman',Times,serif"
-    : f === "mono" ? "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
-      : "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-
-/** White or near-black text, whichever reads better on the brand color. */
-export function contrastText(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-  return lum > 0.62 ? "#111111" : "#ffffff";
-}
+export { contrastText, fontStack };
 
 const abs = (u: string, base: string): string => (u.startsWith("/") ? base + u : u);
 
@@ -80,14 +77,14 @@ export function subjectVars(pub: Publication, s: SubscriberRow): Record<string, 
 function stylesFor(c: RenderCtx): Styles {
   const p = pal(c);
   const brand = c.pub.brand_color;
-  const font = fontStack(c.pub.font);
-  const head = (size: number, mt: number) => `margin:${mt}px 0 12px;font:700 ${size}px/1.25 ${font};color:${p.text};letter-spacing:-0.01em;`;
+  const font = bodyFont(c);
+  const head = (size: number, mt: number) => `margin:${mt}px 0 12px;font:700 ${size}px/1.25 ${headFont(c)};color:${p.text};letter-spacing:-0.01em;`;
   return {
     ...defaultStyles,
     p: `margin:0 0 16px;font:16px/1.65 ${font};color:${p.text};`,
     h1: head(28, 8), h2: head(22, 24), h3: head(18, 20),
     a: `color:${brand};text-decoration:underline;`,
-    button: `display:inline-block;background:${brand};color:${contrastText(brand)};text-decoration:none;font-weight:600;padding:12px 22px;border-radius:8px;margin:4px 0;`,
+    button: `display:inline-block;background:${brand};color:${contrastText(brand)};text-decoration:none;font-weight:600;padding:12px 22px;border-radius:${btnRadius(c)};margin:4px 0;`,
     code: `font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.9em;background:${p.surface};padding:2px 5px;border-radius:4px;`,
     pre: `font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;background:${p.surface};color:${p.text};padding:14px 16px;border-radius:8px;overflow:auto;margin:0 0 16px;white-space:pre-wrap;`,
     hr: `border:0;border-top:1px solid ${p.line};margin:24px 0;`,
@@ -101,7 +98,7 @@ function pollBlock(b: Block, c: RenderCtx): string {
   const poll = c.db.prepare("SELECT * FROM polls WHERE id = ?").get(b.props.pollId) as { id: string; question: string; options: string; closed: number } | undefined;
   if (!poll) return "";
   const p = pal(c);
-  const font = fontStack(c.pub.font);
+  const font = bodyFont(c);
   const opts = parseJson<string[]>(poll.options, []);
   const tok = c.subscriber?.token ?? "";
   const rows = opts.map((o, i) =>
@@ -112,7 +109,7 @@ function pollBlock(b: Block, c: RenderCtx): string {
 function referralBlock(b: Block, c: RenderCtx): string {
   if (!c.pub.referral_enabled) return "";
   const p = pal(c);
-  const font = fontStack(c.pub.font);
+  const font = bodyFont(c);
   const link = c.vars.referral_link;
   const count = Number(c.vars.referral_count || 0);
   const next = c.db.prepare("SELECT name, threshold FROM rewards WHERE threshold > ? ORDER BY threshold LIMIT 1").get(count) as { name: string; threshold: number } | undefined;
@@ -124,13 +121,13 @@ function referralBlock(b: Block, c: RenderCtx): string {
 
 function renderBlock(b: Block, c: RenderCtx): string {
   const p = pal(c);
-  const font = fontStack(c.pub.font);
+  const font = bodyFont(c);
   const brand = c.pub.brand_color;
   const pr = b.props;
   switch (b.type) {
     case "heading": {
       const size = [0, 28, 22, 18][pr.level];
-      return `<h${pr.level} style="margin:${pr.level === 1 ? 8 : 24}px 0 12px;font:700 ${size}px/1.25 ${font};color:${p.text};letter-spacing:-0.01em;text-align:${pr.align};">${esc(pr.text)}</h${pr.level}>`;
+      return `<h${pr.level} style="margin:${pr.level === 1 ? 8 : 24}px 0 12px;font:700 ${size}px/1.25 ${headFont(c)};color:${p.text};letter-spacing:-0.01em;text-align:${pr.align};">${esc(pr.text)}</h${pr.level}>`;
     }
     case "text": return markdown(pr.markdown, stylesFor(c));
     case "image": {
@@ -141,7 +138,7 @@ function renderBlock(b: Block, c: RenderCtx): string {
     }
     case "button": {
       if (!pr.label || !pr.url) return "";
-      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${pr.align}" style="margin:8px ${pr.align === "center" ? "auto" : "0"} 20px;"><tr><td bgcolor="${brand}" style="background:${brand};border-radius:8px;"><a href="${esc(abs(pr.url, c.base))}" style="display:inline-block;padding:12px 22px;color:${contrastText(brand)};font:600 15px ${font};text-decoration:none;border-radius:8px;">${esc(pr.label)}</a></td></tr></table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${pr.align}" style="margin:8px ${pr.align === "center" ? "auto" : "0"} 20px;"><tr><td bgcolor="${brand}" style="background:${brand};border-radius:${btnRadius(c)};"><a href="${esc(abs(pr.url, c.base))}" style="display:inline-block;padding:12px 22px;color:${contrastText(brand)};font:600 15px ${font};text-decoration:none;border-radius:${btnRadius(c)};">${esc(pr.label)}</a></td></tr></table>`;
     }
     case "divider": return `<hr style="border:0;border-top:1px solid ${p.line};margin:24px 0;">`;
     case "spacer": return `<div style="height:${pr.height}px;line-height:${pr.height}px;font-size:1px;">&nbsp;</div>`;
@@ -161,7 +158,7 @@ function renderBlock(b: Block, c: RenderCtx): string {
       const survey = c.db.prepare("SELECT id, closed FROM surveys WHERE id = ?").get(pr.surveyId) as { id: string; closed: number } | undefined;
       if (!survey || survey.closed) return "";
       const href = `${c.base}/s/${survey.id}${c.subscriber ? `?s=${c.subscriber.token}` : ""}`;
-      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px;"><tr><td bgcolor="${brand}" style="background:${brand};border-radius:8px;"><a href="${href}" style="display:inline-block;padding:12px 22px;color:${contrastText(brand)};font:600 15px ${font};text-decoration:none;border-radius:8px;">${esc(pr.label)}</a></td></tr></table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px;"><tr><td bgcolor="${brand}" style="background:${brand};border-radius:${btnRadius(c)};"><a href="${href}" style="display:inline-block;padding:12px 22px;color:${contrastText(brand)};font:600 15px ${font};text-decoration:none;border-radius:${btnRadius(c)};">${esc(pr.label)}</a></td></tr></table>`;
     }
     case "referral": return referralBlock(b, c);
     case "subscribe": {
@@ -206,32 +203,32 @@ export function blocksToText(blocks: Block[], c: RenderCtx): string {
   return out.filter(Boolean).join("\n\n");
 }
 
-export interface EmailParts { subject: string; previewText: string; title?: string; blocks: Block[]; viewUrl?: string | null; pixelUrl?: string | null }
+export interface EmailParts { subject: string; previewText: string; title?: string; blocks: Block[]; viewUrl?: string | null; pixelUrl?: string | null; design?: string }
 
-/** The full email document around a block list: header, content, footer with the unsubscribe link. */
-export function renderEmailDocument(parts: EmailParts, c: RenderCtx): { html: string; text: string } {
-  const pub = c.pub;
-  const brand = pub.brand_color;
-  const font = fontStack(pub.font);
-  const p = EMAIL_PAL;
-  const body = merge(renderBlocks(parts.blocks, c), c.vars, true);
-  const title = parts.title ? `<h1 style="margin:0 0 20px;font:700 30px/1.2 ${font};color:${p.text};letter-spacing:-0.02em;">${esc(merge(parts.title, c.vars))}</h1>` : "";
-  const logo = pub.logo_url
-    ? `<img src="${esc(abs(pub.logo_url, c.base))}" alt="${esc(pub.name)}" style="display:block;max-height:40px;width:auto;border:0;">`
-    : `<span style="font:700 16px ${font};color:${p.text};letter-spacing:-0.01em;">${esc(pub.name)}</span>`;
+/** Which design applies: the post's own, else the publication's, else plain. */
+export const resolveDesign = (own: string | undefined, pub: Publication): DesignId => (isDesignId(own) ? own : isDesignId(pub.design) ? pub.design : "plain");
+
+/** The full email document around a block list, laid out by a design, with the footer and unsubscribe link. */
+export function renderEmailDocument(parts: EmailParts, ctx: RenderCtx): { html: string; text: string } {
+  const pub = ctx.pub;
+  const id = resolveDesign(parts.design, pub);
+  const t = tokens(id, pub);
+  const c: RenderCtx = { ...ctx, design: t };
   const unsub = c.vars.unsubscribe_url;
-  const footerText = pub.footer ? `<div style="margin:0 0 10px;">${esc(merge(pub.footer, c.vars))}</div>` : "";
-  const view = parts.viewUrl ? `<a href="${esc(parts.viewUrl)}" style="color:${p.muted};">View in browser</a> · ` : "";
-  const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>${esc(merge(parts.subject, c.vars))}</title></head>
-<body style="margin:0;padding:0;background:${p.surface};-webkit-text-size-adjust:100%;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${esc(merge(parts.previewText, c.vars))}${"&#847;&zwnj;&nbsp;".repeat(40)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${p.surface};"><tr><td align="center" style="padding:24px 12px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:620px;background:${p.bg};border-radius:12px;border:1px solid ${p.line};">
-<tr><td style="padding:24px 32px 0;border-top:4px solid ${brand};border-radius:12px 12px 0 0;">${logo}</td></tr>
-<tr><td style="padding:24px 32px 8px;font:16px/1.65 ${font};color:${p.text};">${title}${body}</td></tr>
-<tr><td style="padding:16px 32px 28px;font:12.5px/1.6 ${font};color:${p.muted};border-top:1px solid ${p.line};">${footerText}${pub.address ? `<div style="margin:0 0 10px;">${esc(pub.address)}</div>` : ""}<div>${view}<a href="${esc(unsub)}" style="color:${p.muted};">Unsubscribe</a></div></td></tr>
-</table></td></tr></table>${parts.pixelUrl ? `<img src="${esc(parts.pixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px;">` : ""}</body></html>`;
+  const html = composeEmail(id, {
+    t, brand: pub.brand_color, name: pub.name, description: pub.description,
+    logoUrl: pub.logo_url ? abs(pub.logo_url, c.base) : null,
+    subject: merge(parts.subject, c.vars),
+    preheader: merge(parts.previewText, c.vars),
+    title: parts.title ? merge(parts.title, c.vars) : null,
+    body: merge(renderBlocks(parts.blocks, c), c.vars, true),
+    footerText: pub.footer ? merge(pub.footer, c.vars) : "",
+    address: pub.address,
+    unsubscribeUrl: unsub,
+    viewUrl: parts.viewUrl ?? null,
+    date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+    pixel: parts.pixelUrl ? `<img src="${esc(parts.pixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px;">` : "",
+  });
 
   const text = [
     parts.title ? merge(parts.title, c.vars) : "",
@@ -242,6 +239,37 @@ export function renderEmailDocument(parts: EmailParts, c: RenderCtx): { html: st
     parts.viewUrl ? `View in browser: ${parts.viewUrl}` : "",
     `Unsubscribe: ${unsub}`,
   ].filter(Boolean).join("\n\n");
+  return { html, text };
+}
+
+export const MAX_CUSTOM_HTML = 500_000;
+
+/**
+ * An email written by hand as a complete HTML file. Merge tags are filled in (values escaped), scripts and event
+ * handlers are removed, the preview text is added, and an unsubscribe link and postal address are appended
+ * if the file doesn't already link to the subscriber's unsubscribe address.
+ */
+export function renderCustomEmail(source: string, parts: { subject: string; previewText: string; pixelUrl?: string | null }, c: RenderCtx): { html: string; text: string } {
+  const unsub = c.vars.unsubscribe_url;
+  let html = merge(source, c.vars, true)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/href='(https?:\/\/[^']*)'/gi, 'href="$1"'); // click tracking only rewrites double-quoted links
+  if (!/<html[\s>]/i.test(html)) html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${html}</body></html>`;
+  if (!/<body[\s>]/i.test(html)) html = html.replace(/<\/head>/i, "</head><body>") + "</body>";
+  if (!/<\/body>/i.test(html)) html += "</body>";
+
+  const hidden = `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${esc(merge(parts.previewText, c.vars))}${"&#847;&zwnj;&nbsp;".repeat(40)}</div>`;
+  html = html.replace(/<body[^>]*>/i, (m) => m + hidden);
+
+  if (!html.includes(esc(unsub)) && !html.includes(unsub)) {
+    const p = EMAIL_PAL;
+    const f = fontStack(c.pub.font);
+    const address = c.pub.address ? `<div style="margin:0 0 8px;">${esc(c.pub.address)}</div>` : "";
+    html = html.replace(/<\/body>/i, `<div style="max-width:600px;margin:0 auto;padding:20px 24px 32px;font:12.5px/1.6 ${f};color:${p.muted};text-align:center;">${address}<div><a href="${esc(unsub)}" style="color:${p.muted};">Unsubscribe</a></div></div></body>`);
+  }
+  if (parts.pixelUrl) html = html.replace(/<\/body>/i, `<img src="${esc(parts.pixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px;"></body>`);
+  const text = [toText(merge(source, c.vars)), c.pub.address, `Unsubscribe: ${unsub}`].filter(Boolean).join("\n\n");
   return { html, text };
 }
 

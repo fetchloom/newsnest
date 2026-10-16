@@ -9,7 +9,8 @@ import { dynamicSets, postUrl, subjectOf } from "./delivery.ts";
 import type { AbConfig, PostRow } from "./delivery.ts";
 import { assertCanSend, ctxFor, sendSystemMail } from "./mailer.ts";
 import { baseUrl, getPublication } from "./publication.ts";
-import { merge, renderEmailDocument } from "./render.ts";
+import { DESIGN_INFO, isDesignId } from "./designs.ts";
+import { MAX_CUSTOM_HTML, merge, renderCustomEmail, renderEmailDocument } from "./render.ts";
 import { compileRules } from "./segments.ts";
 import { findByEmail } from "./subscribers.ts";
 import { flag, oneOf, parseJson, slugify, text } from "./util.ts";
@@ -24,7 +25,8 @@ export function postView(db: DB, cfg: Config, r: PostRow, full = true) {
   const base = baseUrl(db, cfg);
   return {
     id: r.id, object: "post", title: r.title, subject: r.subject, slug: r.slug, preview_text: r.preview_text,
-    ...(full ? { blocks: parseJson(r.blocks, []), ab: parseJson(r.ab, {}), seo_title: r.seo_title, seo_description: r.seo_description, cover_url: r.cover_url } : {}),
+    design: r.design,
+    ...(full ? { custom_html: r.custom_html, blocks: parseJson(r.blocks, []), ab: parseJson(r.ab, {}), seo_title: r.seo_title, seo_description: r.seo_description, cover_url: r.cover_url } : {}),
     ab_state: parseJson(r.ab_state, {}),
     status: r.status, email_enabled: !!r.email_enabled, web_enabled: !!r.web_enabled, access: r.access, audience: r.audience,
     from_name: r.from_name, from_email: r.from_email, author: r.author,
@@ -72,7 +74,8 @@ function cleanAb(db: DB, raw: unknown): AbConfig {
 
 export const RESERVED_SLUGS = new Set(["feed-xml", "sitemap-xml", "page", "archive", "login", "subscribe"]);
 
-const LOCKED_WHILE_SENDING = ["title", "subject", "blocks", "audience", "ab", "preview_text", "email_enabled"];
+const LOCKED_WHILE_SENDING = ["title", "subject", "blocks", "audience", "ab", "preview_text", "email_enabled", "design", "custom_html"];
+const DESIGN_CHOICES = ["", "plain", "editorial", "modern", "bold", "custom"] as const;
 
 function uniqueSlug(db: DB, wanted: string, exceptId: string | null): string {
   let slug = slugify(wanted);
@@ -119,6 +122,17 @@ export function updatePost(db: DB, cfg: Config, id: string, body: Record<string,
     for (const b of dynamicBlocks(blocks)) compileRules(db, b.props.rules);
     n.blocks = JSON.stringify(blocks);
   }
+  if (body.design !== undefined) n.design = oneOf(body.design, "design", DESIGN_CHOICES);
+  if (body.custom_html !== undefined) {
+    if (typeof body.custom_html !== "string") throw validation(`"custom_html" must be a string`);
+    if (body.custom_html.length > MAX_CUSTOM_HTML) throw validation(`"custom_html" is too long (max ${MAX_CUSTOM_HTML.toLocaleString("en")} characters)`);
+    n.custom_html = body.custom_html;
+  }
+  if (((n.design as string | undefined) ?? cur.design) === "custom") {
+    // A hand-written email has no website version: the page around it would not match the site.
+    if (body.web_enabled === true) throw validation("A custom HTML post is email-only. Turn off the website version, or pick a design.");
+    n.web_enabled = 0;
+  }
   if (body.audience !== undefined) { const a = String(body.audience); validateAudience(db, a); n.audience = a; }
   if (body.ab !== undefined) n.ab = JSON.stringify(cleanAb(db, body.ab));
   { const v = oneOf(body.access, "access", ["public", "subscribers"] as const); if (v) n.access = v; }
@@ -143,7 +157,7 @@ export function deletePost(db: DB, id: string) {
 
 export function duplicatePost(db: DB, cfg: Config, id: string) {
   const r = row(db, id);
-  return createPost(db, cfg, { title: `${r.title} (copy)`, blocks: parseJson(r.blocks, []), subject: r.subject, preview_text: r.preview_text, audience: r.audience, access: r.access, author: r.author, email_enabled: !!r.email_enabled, web_enabled: !!r.web_enabled });
+  return createPost(db, cfg, { title: `${r.title} (copy)`, design: r.design, custom_html: r.custom_html, blocks: parseJson(r.blocks, []), subject: r.subject, preview_text: r.preview_text, audience: r.audience, access: r.access, author: r.author, email_enabled: !!r.email_enabled, web_enabled: !!r.web_enabled });
 }
 
 // ---- sending lifecycle --------------------------------------------------------
@@ -151,7 +165,7 @@ export function schedulePost(db: DB, cfg: Config, id: string, body: Record<strin
   const r = row(db, id);
   if (r.status !== "draft") throw new ApiError(409, "not_draft", `Only drafts can be scheduled (this post is ${r.status}).`);
   if (!r.email_enabled) throw new ApiError(409, "email_disabled", "Turn on email delivery for this post, or just publish it to the website.");
-  if (parseJson<Block[]>(r.blocks, []).length === 0) throw new ApiError(409, "empty_post", "Add some content before sending.");
+  if (r.design === "custom" ? !r.custom_html.trim() : parseJson<Block[]>(r.blocks, []).length === 0) throw new ApiError(409, "empty_post", "Add some content before sending.");
   assertCanSend(db, cfg, getPublication(db), r); // fail now, not at send time
   const at = now();
   let sendAt = at;
@@ -189,7 +203,11 @@ export function previewPost(db: DB, cfg: Config, id: string, body: Record<string
   c.showAllDynamic = !asEmail;
   const base = baseUrl(db, cfg, pub);
   const subject = String(body.subject ?? "") || (typeof body.title === "string" && !r.subject ? body.title : subjectOf(r));
-  const doc = renderEmailDocument({ subject, previewText: String(body.preview_text ?? r.preview_text), title: String(body.title ?? r.title), blocks, viewUrl: `${base}/p/${r.slug}` }, c);
+  const design = typeof body.design === "string" && (DESIGN_CHOICES as readonly string[]).includes(body.design) ? body.design : r.design;
+  const previewText = String(body.preview_text ?? r.preview_text);
+  const doc = design === "custom"
+    ? renderCustomEmail(typeof body.custom_html === "string" ? body.custom_html : r.custom_html, { subject, previewText }, c)
+    : renderEmailDocument({ subject, previewText, title: String(body.title ?? r.title), blocks, viewUrl: `${base}/p/${r.slug}`, design }, c);
   return { subject: merge(subject, c.vars), ...doc };
 }
 
@@ -239,4 +257,21 @@ export function deleteTemplate(db: DB, id: string) {
   if (id.startsWith("tpl_") && BUILTIN_TEMPLATES.some((t) => t.id === id)) throw new ApiError(409, "builtin_template", "Built-in templates can't be deleted.");
   if (!db.prepare("DELETE FROM templates WHERE id = ?").run(id).changes) throw notFound("Template");
   return { id, object: "template", deleted: true };
+}
+
+// ---- designs ------------------------------------------------------------------
+export const listDesigns = () => ({ object: "list", data: DESIGN_INFO });
+
+/** A short sample email in one design, in the publication's own colours, for the design picker. */
+export function designSample(db: DB, cfg: Config, design: unknown) {
+  if (!isDesignId(design)) throw validation(`"design" must be one of: ${DESIGN_INFO.map((d) => d.id).join(", ")}`);
+  const pub = getPublication(db);
+  const c = ctxFor(db, cfg, pub, null, {});
+  const blocks = cleanBlocks([
+    { id: "a", type: "text", props: { markdown: "A short note to show how a post looks in this design. **Bold words**, a [link](https://example.com) and a list:" } },
+    { id: "b", type: "list", props: { style: "bullet", items: ["Clear headings", "Comfortable reading width", "Buttons that match your colour"] } },
+    { id: "c", type: "quote", props: { text: "Good design is mostly good spacing.", cite: "Someone wise" } },
+    { id: "d", type: "button", props: { label: "Read the full issue", url: "https://example.com", align: "left" } },
+  ]);
+  return renderEmailDocument({ subject: "Sample issue", previewText: "", title: "Why small newsletters win", blocks, design }, c);
 }

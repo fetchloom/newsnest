@@ -4,7 +4,7 @@ import { audienceFilter, compileRules } from "./segments.ts";
 import { cleanBlocks, dynamicBlocks } from "./blocks.ts";
 import type { Block } from "./blocks.ts";
 import { baseUrl, getPublication } from "./publication.ts";
-import { buildVars, renderEmailDocument } from "./render.ts";
+import { buildVars, renderCustomEmail, renderEmailDocument } from "./render.ts";
 import type { RenderCtx } from "./render.ts";
 import { findById } from "./subscribers.ts";
 import { pixelUrl, trackHtml } from "./tracking.ts";
@@ -16,7 +16,7 @@ export interface AbConfig { enabled: boolean; variants: AbVariant[]; test_percen
 export interface PostRow {
   id: string; title: string; subject: string; slug: string; preview_text: string; blocks: string; status: string;
   email_enabled: number; web_enabled: number; access: string; audience: string; from_name: string | null; from_email: string | null;
-  author: string; cover_url: string; seo_title: string; seo_description: string; ab: string; ab_state: string;
+  author: string; design: string; custom_html: string; cover_url: string; seo_title: string; seo_description: string; ab: string; ab_state: string;
   send_at: number | null; sent_at: number | null; published_at: number | null; recipients: number; created_at: number; updated_at: number;
 }
 
@@ -69,7 +69,10 @@ export function renderStoredEmail(db: DB, cfg: Config, email: EmailRowLike): { h
     const blocks = variant?.blocks?.length ? variant.blocks : plan.blocks;
     const viewUrl = post.web_enabled && post.published_at ? postUrl(base, post) : null;
     const c: RenderCtx = { db, pub, base, mode: "email", subscriber, dynamic: plan.dynamic, vars: buildVars(db, pub, base, subscriber, { view_url: viewUrl ?? "", post_title: post.title }) };
-    const doc = renderEmailDocument({ subject: variant?.subject || subjectOf(post), previewText: post.preview_text, title: post.title, blocks, viewUrl }, c);
+    const subject = variant?.subject || subjectOf(post);
+    const doc = post.design === "custom"
+      ? renderCustomEmail(post.custom_html, { subject, previewText: post.preview_text }, c)
+      : renderEmailDocument({ subject, previewText: post.preview_text, title: post.title, blocks, viewUrl, design: post.design }, c);
     return {
       html: finish(db, doc.html, pub, base, email.id, `post:${post.id}`, post.slug),
       text: doc.text,

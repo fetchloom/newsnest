@@ -3,6 +3,7 @@ import { h, replace } from "./dom.js";
 import { blockEditor, imagePicker, loadEditorContext } from "./editor.js";
 import type { Block } from "./editor.js";
 import { confirmDialog, dateTimeField, promptDialog } from "./controls.js";
+import { customHtmlEditor, designPicker } from "./designs.js";
 import { ago, busy, debounce, empty, field, fullDate, input, modal, num, pageHead, selectEl, statusBadge, toast } from "./ui.js";
 
 // ---- list ---------------------------------------------------------------------
@@ -40,12 +41,14 @@ export async function newPost(): Promise<HTMLElement> {
         h("div", { style: "font:650 18px var(--display);letter-spacing:-.02em" }, t.name), h("div", { class: "l" }, `${t.blocks.length} blocks${t.builtin ? "" : " · yours"}`)))));
 }
 
+const DESIGN_NAMES: Record<string, string> = { plain: "Plain", editorial: "Editorial", modern: "Modern", bold: "Bold" };
+
 // ---- editor -------------------------------------------------------------------
 export async function postEditor(id: string): Promise<HTMLElement> {
   const [post, ctx, pubSettings, tags, segments] = await Promise.all([
     api("GET", `/posts/${encodeURIComponent(id)}`), loadEditorContext(), api("GET", "/publication"), api("GET", "/fields"), api("GET", "/segments"),
   ]);
-  const S = { ...post } as any;
+  const S = { ...post, design: post.design ?? "", custom_html: post.custom_html ?? "" } as any;
   const locked = S.status === "sending";
   const saveState = h("span", { class: "save-state", "aria-live": "polite" }, "Saved");
   let dirty = false;
@@ -55,7 +58,7 @@ export async function postEditor(id: string): Promise<HTMLElement> {
     try {
       const res = await api("PATCH", `/posts/${S.id}`, {
         title: S.title, subject: S.subject, preview_text: S.preview_text, blocks: S.blocks, audience: S.audience, access: S.access, web_enabled: S.web_enabled, email_enabled: S.email_enabled,
-        author: S.author, slug: S.slug, seo_title: S.seo_title, seo_description: S.seo_description, cover_url: S.cover_url, ab: S.ab, from_name: S.from_name || "", from_email: S.from_email || "",
+        author: S.author, design: S.design, custom_html: S.custom_html, slug: S.slug, seo_title: S.seo_title, seo_description: S.seo_description, cover_url: S.cover_url, ab: S.ab, from_name: S.from_name || "", from_email: S.from_email || "",
       });
       S.slug = res.slug;
       dirty = false;
@@ -70,12 +73,15 @@ export async function postEditor(id: string): Promise<HTMLElement> {
   const previewAs = input({ placeholder: "Preview as subscriber (email, optional)", "aria-label": "Preview as", oninput: () => refreshPreview() });
   const refreshPreview = debounce(async () => {
     try {
-      const r = await api("POST", `/posts/${S.id}/preview`, { mode: previewMode, blocks: S.blocks, title: S.title, subject: S.subject, preview_text: S.preview_text, subscriber: previewMode === "email" ? previewAs.value.trim() : "" });
+      const r = await api("POST", `/posts/${S.id}/preview`, { mode: previewMode, blocks: S.blocks, design: S.design, custom_html: S.custom_html, title: S.title, subject: S.subject, preview_text: S.preview_text, subscriber: previewMode === "email" ? previewAs.value.trim() : "" });
       frame.srcdoc = r.html;
     } catch (e) { frame.srcdoc = `<p style="font:14px system-ui;padding:16px;color:#b00">${String((e as Error).message).replace(/</g, "&lt;")}</p>`; }
   }, 500);
 
   const editor = blockEditor({ blocks: S.blocks, ctx, onChange: (b: Block[]) => { S.blocks = b; touch(); } });
+  const htmlEditor = customHtmlEditor(S, () => touch(), locked);
+  const leftHost = h("div");
+  const drawLeft = (): void => replace(leftHost, S.design === "custom" ? htmlEditor : editor.el);
 
   // --- settings pieces ---
   const bind = (key: string, el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): typeof el => { el.addEventListener("input", () => { S[key] = el.value; touch(); }); return el; };
@@ -114,9 +120,19 @@ export async function postEditor(id: string): Promise<HTMLElement> {
       h("div", { class: "stack" }, field("From name", bind("from_name", input({ value: S.from_name ?? "", placeholder: pubSettings.from_name || pubSettings.name }))), field("From email", bind("from_email", input({ value: S.from_email ?? "", placeholder: pubSettings.from_email || "news@yourdomain.com" }))))),
   );
 
+  const webNote = h("div", { class: "notice" }, "A custom HTML post is email-only. It has no website version.");
+  const webInput = h("input", { type: "checkbox", checked: S.web_enabled, onchange: (e: Event) => { S.web_enabled = (e.target as HTMLInputElement).checked; touch(); } });
+  const webCheck = h("label", { class: "check" }, webInput, "Show on the website");
+  const syncWeb = (): void => {
+    const custom = S.design === "custom";
+    webNote.style.display = custom ? "" : "none";
+    webCheck.style.display = custom ? "none" : "";
+    if (custom) { S.web_enabled = false; webInput.checked = false; }
+  };
   const webPanel = h("div", { class: "modal-body stack" },
     h("label", { class: "check" }, h("input", { type: "checkbox", checked: S.email_enabled, onchange: (e: Event) => { S.email_enabled = (e.target as HTMLInputElement).checked; touch(); } }), "Send by email"),
-    h("label", { class: "check" }, h("input", { type: "checkbox", checked: S.web_enabled, onchange: (e: Event) => { S.web_enabled = (e.target as HTMLInputElement).checked; touch(); } }), "Show on the website"),
+    webNote,
+    webCheck,
     field("Who can read it on the website", selectEl([["public", "Everyone"], ["subscribers", "Subscribers only (they sign in with an email link)"]], S.access, { onchange: (e: Event) => { S.access = (e.target as HTMLSelectElement).value; touch(); } })),
     field("Web address", bind("slug", input({ value: S.slug })), `${pubSettings.base_url}/p/${S.slug}`),
     field("Cover image", imagePicker(S.cover_url, (u) => { S.cover_url = u; touch(); })),
@@ -160,16 +176,21 @@ export async function postEditor(id: string): Promise<HTMLElement> {
   const abPanel = h("div", { class: "modal-body" }, abBody);
 
   // --- tabs ---
+  const designPanel = h("div", { class: "modal-body stack" },
+    await designPicker({ current: S.design, defaultName: DESIGN_NAMES[pubSettings.design] ?? "Modern", allowCustom: true, onPick: (id) => { S.design = id; syncWeb(); drawLeft(); touch(); } }),
+    h("span", { class: "hint" }, "A design is the look of the email around your content. Pick one for this post, or set your default in Settings."));
   const panels: Record<string, HTMLElement> = {
     Preview: h("div", {}, h("div", { class: "toolbar" },
       selectEl([["email", "Email"], ["web", "Website"]], "email", { style: "width:auto", "aria-label": "Preview type", onchange: (e: Event) => { previewMode = (e.target as HTMLSelectElement).value as "email" | "web"; refreshPreview(); } }), previewAs), frame),
-    Settings: settingsPanel, "A/B test": abPanel, Website: webPanel,
+    Design: designPanel, Settings: settingsPanel, "A/B test": abPanel, Website: webPanel,
   };
   const tabBar = h("div", { class: "tabs panel-tabs", role: "tablist" });
   const stage = h("div");
   const select = (name: string): void => { tabBar.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(b.textContent === name))); stage.replaceChildren(panels[name]); };
   for (const name of Object.keys(panels)) tabBar.append(h("button", { class: "tab", role: "tab", type: "button", onclick: () => select(name) }, name));
   select("Preview");
+  syncWeb();
+  drawLeft();
 
   // --- actions ---
   const title = h("input", { class: "title-input", value: S.title, placeholder: "Title", "aria-label": "Post title", maxLength: 300, oninput: (e: Event) => { S.title = (e.target as HTMLInputElement).value; subject.placeholder = S.title || "Defaults to the title"; touch(); } });
@@ -242,7 +263,7 @@ export async function postEditor(id: string): Promise<HTMLElement> {
     h("div", { class: "editor-top" }, title, saveState, statusBadge(S.status), actions),
     locked ? h("div", { class: "notice warn" }, "This post is being sent, so its content is locked until it finishes.") : null, error,
     h("div", { class: "editor-shell" },
-      h("div", {}, editor.el),
+      leftHost,
       h("div", { class: "card side-panel" }, tabBar, stage)));
 }
 

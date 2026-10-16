@@ -1,5 +1,6 @@
 import { api } from "./api.js";
 import { h } from "./dom.js";
+import { designPicker } from "./designs.js";
 import { busy, card, field, input, pageHead, toast } from "./ui.js";
 
 export async function settingsPage(): Promise<HTMLElement> {
@@ -45,6 +46,9 @@ export async function settingsPage(): Promise<HTMLElement> {
   return h("div", { class: "view stack" },
     pageHead("Settings", "Your publication's name, sender and tracking.", save),
     card("Ready to send?", h("ul", { class: "checklist" }, checks.map(([label, ok, fix]) => h("li", { class: ok ? "done" : "" }, h("span", { class: "tick" }), h("span", {}, label, ok ? null : h("span", { class: "muted small" }, ` — ${fix}`)))))),
+    card("Email design", h("div", { class: "card-pad stack" },
+      await designPicker({ current: pub.design, wide: true, onPick: (id) => void api("PATCH", "/publication", { design: id }).then(() => toast("Design saved"), (e) => toast((e as Error).message, "bad")) }),
+      h("p", { class: "hint" }, "The look of every email you send, in your brand colour. A single post can use a different design, or your own HTML."))),
     card("Publication", h("div", { class: "card-pad stack" }, field("Name", text("name")), field("Description", text("description", { placeholder: "One line about what you write" })))),
     card("Sender", h("div", { class: "card-pad stack" },
       h("div", { class: "split" }, field("From name", text("from_name", { placeholder: P.name })), field("From email", text("from_email", { type: "email", placeholder: "news@yourdomain.com" }))),
