@@ -7,6 +7,7 @@ It is the pieces of [Beehiiv](https://www.beehiiv.com) (writing, growing, analyt
 - Needs [Node 24](https://nodejs.org) or newer. Nothing to install.
 - Setting it up on a server: [docs/self-hosting.md](docs/self-hosting.md), with Docker and HTTPS.
 - What is and isn't included: [docs/features.md](docs/features.md).
+- Releasing your own copy or announcing the project: [docs/launch.md](docs/launch.md).
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
 
 ## Try it in a minute
@@ -16,7 +17,7 @@ git clone https://github.com/fetchloom/newsnest && cd newsnest
 node server.ts          # then open http://127.0.0.1:8700/app/ and choose a password
 ```
 
-Out of the box it saves emails as files instead of sending them, so you can explore safely. To send real email, connect an SMTP service or send directly from a server (see below).
+Out of the box it saves emails as files instead of sending them, so you can explore safely. In **Settings**, **Load sample data** fills it with example subscribers, issues and statistics (and removes them again with one click). To send real email, connect an SMTP service or send directly from a server (see below).
 
 ```sh
 node --test test/*.test.ts   # the tests: a fake mail server and a fake browser, no real mail sent

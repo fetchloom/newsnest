@@ -1,0 +1,41 @@
+# Publishes the landing page to GitHub Pages on your own domain.
+# Off until you opt in. To turn it on:
+#   1. Settings → Pages → Source: "GitHub Actions"
+#   2. Settings → Secrets and variables → Actions → Variables: add LANDING_DOMAIN (e.g. newsnest.app)
+#      and, if you run a Newsnest for the waitlist form, WAITLIST_URL (e.g. https://news.newsnest.app/subscribe)
+#   3. Point the domain's DNS at GitHub Pages (see docs/launch.md)
+name: Landing page
+on:
+  push:
+    branches: [main]
+    paths: [public/**, src/client/**, build.ts, .github/workflows/landing.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    if: ${{ vars.LANDING_DOMAIN != '' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node build.ts --landing
+        env:
+          NEWSNEST_LANDING_DOMAIN: ${{ vars.LANDING_DOMAIN }}
+          NEWSNEST_WAITLIST_URL: ${{ vars.WAITLIST_URL }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

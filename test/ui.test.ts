@@ -207,6 +207,8 @@ describe("interactions", () => {
 
   test("the default design is chosen in Settings", async () => {
     const el = await go("#/settings");
+    assert.equal(byText(el, "button", "Load sample data").disabled, true, "sample data is only offered on an empty Newsnest");
+    assert.match(textOf(el), /only be loaded into an empty Newsnest/);
     const cards = el.querySelectorAll(".design-card");
     assert.deepEqual(cards.map((c) => textOf(c.querySelector("b")!)), ["Plain", "Editorial", "Modern", "Bold"]);
     cards[3].click();

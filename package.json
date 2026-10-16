@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node server.ts",
     "build": "node build.ts",
+    "build:landing": "node build.ts --landing",
     "test": "node --test test/*.test.ts"
   }
 }

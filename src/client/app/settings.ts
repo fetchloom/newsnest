@@ -1,10 +1,11 @@
 import { api } from "./api.js";
 import { h } from "./dom.js";
+import { confirmDialog } from "./controls.js";
 import { designPicker } from "./designs.js";
 import { busy, card, field, input, pageHead, toast } from "./ui.js";
 
 export async function settingsPage(): Promise<HTMLElement> {
-  const [pub, domains] = await Promise.all([api("GET", "/publication"), api("GET", "/domains")]);
+  const [pub, domains, demo] = await Promise.all([api("GET", "/publication"), api("GET", "/domains"), api("GET", "/demo")]);
   const P = { ...pub };
   const text = (key: string, props: Record<string, unknown> = {}): HTMLInputElement => input({ value: P[key] ?? "", oninput: (e: Event) => { P[key] = (e.target as HTMLInputElement).value; }, ...props });
   const check = (key: string, label: string): HTMLElement => h("label", { class: "check" }, h("input", { type: "checkbox", checked: P[key], onchange: (e: Event) => { P[key] = (e.target as HTMLInputElement).checked; } }), label);
@@ -43,6 +44,20 @@ export async function settingsPage(): Promise<HTMLElement> {
     } catch (e) { passError.textContent = (e as Error).message; }
   }));
 
+  const demoBtn = h("button", { class: demo.loaded ? "btn btn-danger" : "btn btn-ghost", type: "button", disabled: !demo.loaded && !demo.empty }, demo.loaded ? "Remove sample data" : "Load sample data");
+  demoBtn.addEventListener("click", () => void busy(demoBtn, async () => {
+    if (demo.loaded) {
+      if (!(await confirmDialog("Remove all sample subscribers, issues, polls and statistics? Anything you added yourself is kept.", { title: "Remove sample data", confirm: "Remove" }))) return;
+      await api("DELETE", "/demo");
+      toast("Sample data removed");
+      location.reload();
+    } else {
+      await api("POST", "/demo");
+      toast("Sample data loaded");
+      location.hash = "#/";
+    }
+  }));
+
   return h("div", { class: "view stack" },
     pageHead("Settings", "Your publication's name, sender and tracking.", save),
     card("Ready to send?", h("ul", { class: "checklist" }, checks.map(([label, ok, fix]) => h("li", { class: ok ? "done" : "" }, h("span", { class: "tick" }), h("span", {}, label, ok ? null : h("span", { class: "muted small" }, ` — ${fix}`)))))),
@@ -62,5 +77,10 @@ export async function settingsPage(): Promise<HTMLElement> {
       h("div", { class: "split" }, field("New password", next, "At least 10 characters."), field("Repeat new password", again)),
       passError, h("div", {}, change),
       h("p", { class: "hint" }, "Changing it signs out every other browser. Locked out? Start the server once with NEWSNEST_ADMIN_PASSWORD set to a new password."))),
+    card("Sample data", h("div", { class: "card-pad stack" },
+      h("p", { class: "hint" }, demo.loaded ? "Example subscribers, issues and statistics are loaded, so you can see how everything looks. Remove them when you are ready to start for real."
+        : demo.empty ? "Just looking around? Fill Newsnest with example subscribers, sent issues, opens and clicks, a poll and an automation. One click removes it all again. Nothing is ever sent to the example addresses."
+          : "Sample data can only be loaded into an empty Newsnest, so it never mixes with your real subscribers."),
+      h("div", {}, demoBtn))),
     h("span", { class: "hint" }, `Sending mode: ${pub.mode}. Change it with the NEWSNEST_MODE setting when you start the server.`));
 }

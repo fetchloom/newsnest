@@ -6,6 +6,7 @@ import { automationStats, createAutomation, deleteAutomation, getAutomation, lis
 import { baseUrl, getPublication, isLocalUrl, updatePublication } from "./publication.ts";
 import { createPage, deletePage, getPage, listPages, updatePage } from "./pages.ts";
 import { createPoll, deletePoll, getPoll, listPolls, updatePoll, createSurvey, deleteSurvey, getSurvey, listSurveys, surveyCsv, surveyResults, updateSurvey } from "./polls.ts";
+import { demoStatus, removeDemo, seedDemo } from "./demo.ts";
 import { createPost, deletePost, deleteTemplate, designSample, duplicatePost, getPost, listDesigns, listPosts, listTemplates, previewPost, saveTemplate, schedulePost, sendTest, setPublished, unschedulePost, updatePost } from "./posts.ts";
 import { createReward, deleteReward, fulfillClaim, listClaims, listRewards, referralOverview, updateReward } from "./referrals.ts";
 import { FIELD_CATALOG, changeMembers, createSegment, deleteSegment, getSegment, listSegments, previewRules, snapshotSegment, updateSegment } from "./segments.ts";
@@ -79,6 +80,9 @@ export const newsletterRoutes: Route[] = [
   }),
   route("POST", "/posts/:id/test", (c) => { const r = sendTest(c.db, c.cfg, c.params[0], obj(c.body)); c.kick(); return ok(r); }),
   route("GET", "/posts/:id/stats", (c) => ok(postStats(c.db, c.params[0]))),
+  route("GET", "/demo", (c) => ok(demoStatus(c.db))),
+  route("POST", "/demo", (c) => ok(seedDemo(c.db, c.cfg), 201)),
+  route("DELETE", "/demo", (c) => ok(removeDemo(c.db))),
   route("GET", "/designs", () => ok(listDesigns())),
   route("POST", "/designs/sample", (c) => ok(designSample(c.db, c.cfg, obj(c.body).design))),
   route("GET", "/templates", (c) => ok(listTemplates(c.db))),
