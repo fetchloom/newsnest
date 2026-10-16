@@ -2,7 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { DB } from "./db.ts";
 import { now, sha256 } from "./ids.ts";
 
-export const COOKIE = "fp_session";
+export const COOKIE = "nn_session";
 const SESSION_MS = 30 * 24 * 3600 * 1000;
 export const MIN_PASSWORD = 10;
 

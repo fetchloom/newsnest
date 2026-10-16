@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. Freepost is small on purpose, so a few ground rules keep it that way.
+Thanks for helping. Newsnest is small on purpose, so a few ground rules keep it that way.
 
 ## Setup
 

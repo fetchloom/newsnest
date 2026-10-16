@@ -16,7 +16,7 @@ import type { RenderCtx } from "./render.ts";
 import type { SubscriberRow } from "./subscribers.ts";
 import { parseJson } from "./util.ts";
 
-const READER_COOKIE = "fp_reader";
+const READER_COOKIE = "nn_reader";
 const READER_MS = 30 * 24 * 3600 * 1000;
 const PAGE_SIZE = 12;
 

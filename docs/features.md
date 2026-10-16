@@ -1,9 +1,9 @@
-# Feature analysis: Resend and Beehiiv vs Freepost
+# Feature analysis: Resend and Beehiiv vs Newsnest
 
 Sources: resend.com (llms.txt, docs index, pricing.md) and beehiiv.com (llms.txt, feature pages, pricing), read 2026-10-16.
 Where a page did not say whether something exists, it is marked "unconfirmed" rather than guessed.
 
-Legend for Freepost: **yes** built · **part** partly built · **no** not built.
+Legend for Newsnest: **yes** built · **part** partly built · **no** not built.
 Plan: **P1–P5** = build phase (see the end) · **infra** = works, but needs a server you run · **external** = needs a third-party service · **network** = only works with other people's publishers.
 
 ## What they charge (the thing we replace)
@@ -16,7 +16,7 @@ Plan: **P1–P5** = build phase (see the end) · **infra** = works, but needs a 
 
 ## Resend
 
-| Area | Feature | Freepost | Plan |
+| Area | Feature | Newsnest | Plan |
 | --- | --- | --- | --- |
 | Sending | Send API, batch (100), schedule, cancel, reschedule | yes | |
 | | Idempotency keys, tags, custom headers | yes | |
@@ -55,7 +55,7 @@ Plan: **P1–P5** = build phase (see the end) · **infra** = works, but needs a 
 
 ## Beehiiv
 
-| Area | Feature | Freepost | Plan |
+| Area | Feature | Newsnest | Plan |
 | --- | --- | --- | --- |
 | Editor | Drag-and-drop block editor | part (Markdown + live preview) | P2 |
 | | Templates, brand colors/fonts/layout | no | P2 |
@@ -90,7 +90,7 @@ Plan: **P1–P5** = build phase (see the end) · **infra** = works, but needs a 
 
 ## Not possible to match, and why
 
-- **Ad network, recommendations network, Boosts.** These work because Beehiiv has thousands of publishers and advertisers on one platform. A self-hosted instance has neither. They could only exist as a federation between Freepost instances, which is a separate project.
+- **Ad network, recommendations network, Boosts.** These work because Beehiiv has thousands of publishers and advertisers on one platform. A self-hosted instance has neither. They could only exist as a federation between Newsnest instances, which is a separate project.
 - **Paid subscriptions, digital products.** Money has to move through a payment processor. Processors charge fees, so this can't be "no fees" end to end. Your own Paydesk gateway is the way to keep it self-run.
 - **AI writing assistant, text-to-speech.** They need a model. It can be optional with your own key or a local model, but it isn't free in the way the rest is.
 - **Inbox placement.** No software can promise it. It depends on your IP, DNS and sending behavior.

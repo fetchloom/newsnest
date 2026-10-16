@@ -45,7 +45,7 @@ export async function websitePage(): Promise<HTMLElement> {
         card("Search engines and sharing", h("div", { class: "card-pad stack" }, field("Site title", text("seo_title", { placeholder: P.name })), field("Site description", text("seo_description", { placeholder: P.description })), field("Sharing image", imagePicker(P.og_image_url, (u) => { P.og_image_url = u; }), "Shown when links to your site are shared.")))),
       h("div", { class: "stack" },
         card("Your own domain", h("div", { class: "card-pad stack" }, field("Domain", text("site_domain", { placeholder: "news.yourdomain.com" })),
-          h("p", { class: "small muted" }, "Point this domain's DNS at the server running Freepost and put HTTPS in front of it (Caddy or nginx work well). Requests for it then show your site at the root, with no /p/ prefix. Also set the matching public URL in Settings so links in emails use it."))),
+          h("p", { class: "small muted" }, "Point this domain's DNS at the server running Newsnest and put HTTPS in front of it (Caddy or nginx work well). Requests for it then show your site at the root, with no /p/ prefix. Also set the matching public URL in Settings so links in emails use it."))),
         h("div", { class: "card" }, h("div", { class: "card-head" }, h("h2", {}, "Pages"), newPage),
           pages.data.length ? h("div", { class: "table-scroll" }, h("table", { class: "t" }, h("tbody", {}, pages.data.map((p: any) => h("tr", { class: "link", onclick: () => { location.hash = `#/website/pages/${p.id}`; } }, h("td", {}, p.title), h("td", { class: "muted small" }, `/p/${p.slug}`), h("td", {}, statusBadge(p.published ? "live" : "draft")))))))
             : empty("No pages yet", "Add an About page or a Contact page.")),

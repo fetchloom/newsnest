@@ -81,7 +81,7 @@ export interface Harness {
 
 export async function harness(overrides: Partial<Config> = {}): Promise<Harness> {
   const smtp = await fakeSmtp();
-  const dir = mkdtempSync(join(tmpdir(), "freepost-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "newsnest-test-"));
   const dnsTxt = new Map<string, string[][]>();
   const cfg = loadConfig({}, {
     dataDir: dir,

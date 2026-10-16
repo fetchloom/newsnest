@@ -5,7 +5,7 @@ const cfg = loadConfig();
 const app = createApp(cfg);
 
 app.server.listen(cfg.port, cfg.host, () => {
-  console.log(`freepost → http://${cfg.host}:${cfg.port}  (mode: ${cfg.mode}, data: ${cfg.dataDir})`);
+  console.log(`newsnest → http://${cfg.host}:${cfg.port}  (mode: ${cfg.mode}, data: ${cfg.dataDir})`);
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

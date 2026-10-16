@@ -31,6 +31,6 @@ export async function suppressionsPage(): Promise<HTMLElement> {
   } }, h("div", { class: "grow" }, email), add);
 
   await draw();
-  return h("div", { class: "view stack" }, pageHead("Suppressions", "Freepost never sends to these addresses. Hard bounces land here on their own."),
+  return h("div", { class: "view stack" }, pageHead("Suppressions", "Newsnest never sends to these addresses. Hard bounces land here on their own."),
     h("div", { class: "card card-pad stack" }, form, error), h("div", { class: "card" }, tableHost));
 }

@@ -41,7 +41,7 @@ export function parseHeaders(raw: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [name, value] of Object.entries(raw)) {
     if (!HEADER_NAME.test(name)) throw validation(`Invalid header name "${name.slice(0, 40)}"`);
-    if (RESERVED_HEADERS.has(name.toLowerCase())) throw validation(`Header "${name}" is set by Freepost and cannot be overridden`);
+    if (RESERVED_HEADERS.has(name.toLowerCase())) throw validation(`Header "${name}" is set by Newsnest and cannot be overridden`);
     if (typeof value !== "string" || value.length > 998) throw validation(`Header "${name}" must be a string under 998 characters`);
     out[name] = value;
   }

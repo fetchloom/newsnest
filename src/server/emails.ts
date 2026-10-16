@@ -98,7 +98,7 @@ export interface EmailExtra {
   automation_run_id?: string | null;
 }
 
-/** Key used for mail Freepost sends itself (confirmations, newsletters, automations). */
+/** Key used for mail Newsnest sends itself (confirmations, newsletters, automations). */
 export const SYSTEM_KEY: ApiKeyInfo = { id: "system", permission: "full", domain_id: null, session: true };
 
 export function insertEmail(db: DB, p: Prepared, key: ApiKeyInfo, at: number, extra: EmailExtra = {}): string {

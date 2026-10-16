@@ -1,12 +1,12 @@
-# Hosted Freepost: plan
+# Hosted Newsnest: plan
 
 Goal: anyone can sign up and run a newsletter and send email, without hosting anything. This is the second step after the open-source release.
 
 ## What has to change
 
-Freepost today is single-owner: one password, one publication, one database. A hosted version needs accounts and isolation between them.
+Newsnest today is single-owner: one password, one publication, one database. A hosted version needs accounts and isolation between them.
 
-**Tenancy: one SQLite file per workspace.** A small control database holds accounts, workspaces, limits and abuse flags. Each workspace gets its own database file with the schema Freepost already has. A request resolves session, then workspace, then database handle (a small cache of open files). This avoids adding a `workspace_id` to about 50 tables and every query, and makes export and delete one file.
+**Tenancy: one SQLite file per workspace.** A small control database holds accounts, workspaces, limits and abuse flags. Each workspace gets its own database file with the schema Newsnest already has. A request resolves session, then workspace, then database handle (a small cache of open files). This avoids adding a `workspace_id` to about 50 tables and every query, and makes export and delete one file.
 
 What follows from that:
 - Public routes (subscribe, confirm, unsubscribe, tracking, the website at `/p`) need to know the workspace: a `/w/<slug>/` prefix or the workspace's own domain, and tracking links carry the workspace id.

@@ -3,7 +3,7 @@ import { onceVisible, reducedMotion, sleep } from "./motion.js";
 const EVENTS = [
   "New subscriber: ada@example.com",
   "Opened: “Issue #42” by lin@example.org",
-  "Clicked: freepost.dev/guide",
+  "Clicked: newsnest.dev/guide",
   "New subscriber: sam@example.net",
   "Poll vote: Deliverability",
   "Referral reward earned: Sticker pack",

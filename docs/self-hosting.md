@@ -1,6 +1,6 @@
-# Hosting Freepost yourself
+# Hosting Newsnest yourself
 
-Freepost is a program you run on a computer that stays on. This page gets it onto a small server so it is reachable by your readers.
+Newsnest is a program you run on a computer that stays on. This page gets it onto a small server so it is reachable by your readers.
 
 ## What you need
 
@@ -11,33 +11,33 @@ Freepost is a program you run on a computer that stays on. This page gets it ont
 ## With Docker
 
 ```sh
-git clone <your copy of the repo> freepost && cd freepost
+git clone <your copy of the repo> newsnest && cd newsnest
 cp .env.example .env        # fill in the domain, a password and your mail settings
 docker compose up -d
 ```
 
-Open `https://your-domain/app/` and sign in with the password from `.env`. Caddy fetches and renews the HTTPS certificate automatically. Your data lives in the `freepost-data` volume (one SQLite file).
+Open `https://your-domain/app/` and sign in with the password from `.env`. Caddy fetches and renews the HTTPS certificate automatically. Your data lives in the `newsnest-data` volume (one SQLite file).
 
 ## Without Docker
 
 Needs Node 24 or newer.
 
 ```sh
-FREEPOST_HOST=0.0.0.0 FREEPOST_PUBLIC_URL=https://news.example.com FREEPOST_ADMIN_PASSWORD='choose a long one' \
-FREEPOST_MODE=relay FREEPOST_RELAY_URL='smtps://user:pass@smtp.example.com:465' node server.ts
+NEWSNEST_HOST=0.0.0.0 NEWSNEST_PUBLIC_URL=https://news.example.com NEWSNEST_ADMIN_PASSWORD='choose a long one' \
+NEWSNEST_MODE=relay NEWSNEST_RELAY_URL='smtps://user:pass@smtp.example.com:465' node server.ts
 ```
 
-Run it under a service manager (systemd) so it restarts, and put Caddy or nginx in front for HTTPS. Pass `X-Forwarded-Proto` and set `FREEPOST_TRUST_PROXY=1`.
+Run it under a service manager (systemd) so it restarts, and put Caddy or nginx in front for HTTPS. Pass `X-Forwarded-Proto` and set `NEWSNEST_TRUST_PROXY=1`.
 
 ## First steps in the dashboard
 
-1. Domains: add your sending domain and publish the DNS records (SPF, DKIM, DMARC). Freepost checks them.
+1. Domains: add your sending domain and publish the DNS records (SPF, DKIM, DMARC). Newsnest checks them.
 2. Settings: set the From address, postal address and public URL.
 3. Send yourself a test post.
 
 ## Backups
 
-Everything is in one file, `freepost.db`, in the data directory, with uploaded images in `uploads/` beside it. Use `sqlite3 freepost.db ".backup backup.db"` for a safe copy while it is running.
+Everything is in one file, `newsnest.db`, in the data directory, with uploaded images in `uploads/` beside it. Use `sqlite3 newsnest.db ".backup backup.db"` for a safe copy while it is running.
 
 ## Sending without landing in spam
 

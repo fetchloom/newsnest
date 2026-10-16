@@ -57,6 +57,6 @@ export async function settingsPage(): Promise<HTMLElement> {
       h("div", { class: "split" }, field("Current password", current), h("div")),
       h("div", { class: "split" }, field("New password", next, "At least 10 characters."), field("Repeat new password", again)),
       passError, h("div", {}, change),
-      h("p", { class: "hint" }, "Changing it signs out every other browser. Locked out? Start the server once with FREEPOST_ADMIN_PASSWORD set to a new password."))),
-    h("span", { class: "hint" }, `Sending mode: ${pub.mode}. Change it with the FREEPOST_MODE setting when you start the server.`));
+      h("p", { class: "hint" }, "Changing it signs out every other browser. Locked out? Start the server once with NEWSNEST_ADMIN_PASSWORD set to a new password."))),
+    h("span", { class: "hint" }, `Sending mode: ${pub.mode}. Change it with the NEWSNEST_MODE setting when you start the server.`));
 }

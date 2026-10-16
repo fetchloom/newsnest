@@ -149,7 +149,7 @@ async function shell(): Promise<void> {
     const mine = ++token;
     const section = parseHash(location.hash).parts[0] ?? "";
     const label = links.find((a) => a.dataset.path === section)?.textContent;
-    document.title = label && section ? `${label} · Freepost` : "Freepost";
+    document.title = label && section ? `${label} · Newsnest` : "Newsnest";
     if (!live) { document.getElementById("side")?.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
     const slow = live ? 0 : window.setTimeout(() => progress.classList.add("on"), 180); // only show the bar if the page is slow
     links.forEach((a) => { if (a.dataset.path === section) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
@@ -217,5 +217,5 @@ async function boot(): Promise<void> {
   }
 }
 
-addEventListener("fp:unauthorized", () => { stopLive(); toast("Your session ended. Sign in again.", "bad"); void boot(); });
+addEventListener("nn:unauthorized", () => { stopLive(); toast("Your session ended. Sign in again.", "bad"); void boot(); });
 if (root) { installControls(); void boot(); }

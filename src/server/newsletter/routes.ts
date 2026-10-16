@@ -135,7 +135,7 @@ export const newsletterRoutes: Route[] = [
     return ok({
       base_url: base, base_url_is_local: isLocalUrl(base), hosted_page: `${base}/subscribe`,
       iframe: `<iframe src="${base}/subscribe?embed=1" width="100%" height="260" style="border:0;max-width:520px" title="Subscribe"></iframe>`,
-      inline: `<div data-freepost-form></div>\n<script async src="${src}"></script>`,
+      inline: `<div data-newsnest-form></div>\n<script async src="${src}"></script>`,
       popup: `<script async src="${src}" data-mode="popup" data-delay="8"></script>`,
       exit_intent: `<script async src="${src}" data-mode="popup" data-trigger="exit"></script>`,
       slide_in: `<script async src="${src}" data-mode="slide-in" data-delay="12"></script>`,

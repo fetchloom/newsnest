@@ -87,7 +87,7 @@ export async function automationEditor(id: string): Promise<HTMLElement> {
       } else if (s.type === "add_tag" || s.type === "remove_tag") {
         body.append(input({ value: s.tag, placeholder: "tag name", list: "auto-tags2", oninput: upd("tag"), "aria-label": "Tag" }), h("datalist", { id: "auto-tags2" }, ctx.catalog.tags.map((x) => h("option", { value: x }))));
       } else if (s.type === "webhook") {
-        body.append(input({ value: s.url, placeholder: "https://example.com/hook", oninput: upd("url"), "aria-label": "Webhook URL" }), h("span", { class: "hint" }, "Freepost POSTs the subscriber's email, id and fields as JSON."));
+        body.append(input({ value: s.url, placeholder: "https://example.com/hook", oninput: upd("url"), "aria-label": "Webhook URL" }), h("span", { class: "hint" }, "Newsnest POSTs the subscriber's email, id and fields as JSON."));
       }
       return h("div", { class: "step-card" }, head, body);
     }

@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest something Freepost should do
+about: Suggest something Newsnest should do
 labels: enhancement
 ---
 

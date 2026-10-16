@@ -1,8 +1,8 @@
 {
-  "name": "freepost",
+  "name": "newsnest",
   "private": true,
   "license": "AGPL-3.0-only",
-  "repository": "github:fetchloom/freepost",
+  "repository": "github:fetchloom/newsnest",
   "type": "module",
   "engines": {
     "node": ">=24"

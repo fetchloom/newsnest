@@ -1,24 +1,24 @@
-# Freepost behind Caddy, which gets and renews the HTTPS certificate for you.
+# Newsnest behind Caddy, which gets and renews the HTTPS certificate for you.
 # 1. Point your domain's DNS A record at this server.
 # 2. Copy .env.example to .env and fill it in.
 # 3. docker compose up -d
 services:
-  freepost:
+  newsnest:
     build: .
     restart: unless-stopped
     env_file: .env
     environment:
-      FREEPOST_TRUST_PROXY: "1"
+      NEWSNEST_TRUST_PROXY: "1"
     volumes:
-      - freepost-data:/data
+      - newsnest-data:/data
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     ports: ["80:80", "443:443"]
-    command: caddy reverse-proxy --from ${FREEPOST_DOMAIN} --to freepost:8700
+    command: caddy reverse-proxy --from ${NEWSNEST_DOMAIN} --to newsnest:8700
     volumes:
       - caddy-data:/data
-    depends_on: [freepost]
+    depends_on: [newsnest]
 volumes:
-  freepost-data:
+  newsnest-data:
   caddy-data:

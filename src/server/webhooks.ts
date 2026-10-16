@@ -80,7 +80,7 @@ export function deleteWebhook(db: DB, id: string) {
 }
 
 // ---- signing -----------------------------------------------------------------
-// fp-signature: v1,<base64 HMAC-SHA256 of `${fp-id}.${fp-timestamp}.${body}`> keyed with the webhook secret.
+// newsnest-signature: v1,<base64 HMAC-SHA256 of `${newsnest-id}.${newsnest-timestamp}.${body}`> keyed with the webhook secret.
 export const signPayload = (secret: string, id: string, timestamp: string, body: string): string =>
   "v1," + createHmac("sha256", secret).update(`${id}.${timestamp}.${body}`).digest("base64");
 
@@ -147,10 +147,10 @@ async function deliverWebhook(db: DB, d: Due, doFetch: Fetch): Promise<void> {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "user-agent": "Freepost-Webhooks/1",
-        "fp-id": d.event_id,
-        "fp-timestamp": timestamp,
-        "fp-signature": signPayload(hook.secret, d.event_id, timestamp, body),
+        "user-agent": "Newsnest-Webhooks/1",
+        "newsnest-id": d.event_id,
+        "newsnest-timestamp": timestamp,
+        "newsnest-signature": signPayload(hook.secret, d.event_id, timestamp, body),
       },
       body,
       redirect: "manual",

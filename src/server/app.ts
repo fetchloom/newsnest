@@ -34,10 +34,10 @@ export interface App {
 
 export function createApp(cfg: Config, deps: { transport?: Transport; fetch?: Fetch; serveSite?: boolean } = {}): App {
   mkdirSync(cfg.dataDir, { recursive: true, mode: 0o700 });
-  const db = openDb(join(cfg.dataDir, "freepost.db"));
-  // FREEPOST_ADMIN_PASSWORD sets the first password, and is also the way back in if it is forgotten.
+  const db = openDb(join(cfg.dataDir, "newsnest.db"));
+  // NEWSNEST_ADMIN_PASSWORD sets the first password, and is also the way back in if it is forgotten.
   if (cfg.adminPassword && !checkPassword(db, cfg.adminPassword)) {
-    if (hasPassword(db)) console.warn("FREEPOST_ADMIN_PASSWORD reset the dashboard password. Remove it from the environment once you are signed in, or it resets again on every start.");
+    if (hasPassword(db)) console.warn("NEWSNEST_ADMIN_PASSWORD reset the dashboard password. Remove it from the environment once you are signed in, or it resets again on every start.");
     setPassword(db, cfg.adminPassword);
   }
   const queue = startQueue(db, cfg, deps.transport, deps.fetch);

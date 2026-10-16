@@ -5,7 +5,7 @@
 /* ---------- Sidebar ---------- */
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 2px; padding: 20px 14px; border-right: 1px solid var(--line); background: var(--bg); }
 .side .logo { padding: 4px 10px 18px; }
-.auth-card .logo .lg-mark { width: 52px; } .auth-card .logo .lg-word { width: 88px; }
+.auth-card .logo .lg-mark { width: 52px; } .auth-card .logo .lg-text { font-size: 28px; }
 .nav-item { position: relative; display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; color: var(--muted); font-size: 14px; transition: background-color .2s, color .2s; }
 .nav-item:hover { background: var(--surface); color: var(--fg); }
 .nav-item[aria-current="page"] { background: var(--surface); color: var(--fg); font-weight: 500; }

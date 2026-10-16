@@ -3,7 +3,7 @@ WORKDIR /app
 COPY server.ts package.json ./
 COPY src ./src
 COPY public ./public
-ENV FREEPOST_HOST=0.0.0.0 FREEPOST_DATA=/data
+ENV NEWSNEST_HOST=0.0.0.0 NEWSNEST_DATA=/data
 VOLUME /data
 EXPOSE 8700
 USER node

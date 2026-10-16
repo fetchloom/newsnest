@@ -41,7 +41,7 @@ export function createKey(db: DB, input: { name?: unknown; permission?: unknown;
     if (!db.prepare("SELECT 1 FROM domains WHERE id = ?").get(domainId)) throw validation(`Unknown domain_id`);
   }
 
-  const key = "fp_" + randomBytes(32).toString("base64url");
+  const key = "nn_" + randomBytes(32).toString("base64url");
   const id = newId("key");
   db.prepare("INSERT INTO api_keys (id, name, prefix, hash, permission, domain_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
     .run(id, input.name.trim(), key.slice(0, 9), sha256(key), permission, domainId, now());
@@ -50,7 +50,7 @@ export function createKey(db: DB, input: { name?: unknown; permission?: unknown;
 }
 
 export function authenticate(db: DB, header: string | undefined): ApiKeyInfo | null {
-  const m = /^Bearer\s+(fp_[A-Za-z0-9_-]+)$/.exec(header ?? "");
+  const m = /^Bearer\s+(nn_[A-Za-z0-9_-]+)$/.exec(header ?? "");
   if (!m) return null;
   const row = db.prepare("SELECT * FROM api_keys WHERE hash = ? AND revoked_at IS NULL").get(sha256(m[1])) as unknown as KeyRow | undefined;
   if (!row) return null;

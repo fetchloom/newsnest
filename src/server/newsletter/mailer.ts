@@ -33,7 +33,7 @@ export function ctxFor(db: DB, cfg: Config, pub: Publication, subscriber: Subscr
 
 interface SystemMail { to: string; subject: string; html: string; text: string; subscriberId?: string | null; headers?: Record<string, string> }
 
-/** Queues a one-off message Freepost sends on its own behalf. Returns the email id, or null if sending isn't set up. */
+/** Queues a one-off message Newsnest sends on its own behalf. Returns the email id, or null if sending isn't set up. */
 export function sendSystemMail(db: DB, cfg: Config, mail: SystemMail): string | null {
   const pub = getPublication(db);
   try {

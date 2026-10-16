@@ -70,7 +70,7 @@ export function startQueue(db: DB, cfg: Config, transport: Transport = makeTrans
   let stopped = false;
   let windowStart = 0;
   let bulkUsed = 0;
-  /** Newsletter and automation mail is paced (FREEPOST_SEND_RATE per second). API mail is not. */
+  /** Newsletter and automation mail is paced (NEWSNEST_SEND_RATE per second). API mail is not. */
   const bulkBudget = (): number => {
     const t = Date.now();
     if (t - windowStart >= 1000) { windowStart = t; bulkUsed = 0; }

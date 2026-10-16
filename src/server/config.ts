@@ -32,26 +32,26 @@ export interface Config {
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<Config> = {}): Config {
-  const mode = (env.FREEPOST_MODE ?? "outbox") as Mode;
+  const mode = (env.NEWSNEST_MODE ?? "outbox") as Mode;
   if (!["outbox", "direct", "relay"].includes(mode)) {
-    throw new Error(`FREEPOST_MODE must be outbox, direct or relay (got "${mode}")`);
+    throw new Error(`NEWSNEST_MODE must be outbox, direct or relay (got "${mode}")`);
   }
-  const relayUrl = env.FREEPOST_RELAY_URL ?? null;
-  if (mode === "relay" && !relayUrl) throw new Error("FREEPOST_MODE=relay needs FREEPOST_RELAY_URL");
+  const relayUrl = env.NEWSNEST_RELAY_URL ?? null;
+  if (mode === "relay" && !relayUrl) throw new Error("NEWSNEST_MODE=relay needs NEWSNEST_RELAY_URL");
 
   return {
-    port: Number(env.PORT ?? env.FREEPOST_PORT ?? 8700),
-    host: env.FREEPOST_HOST ?? "127.0.0.1",
-    dataDir: env.FREEPOST_DATA ?? join(root, "data"),
+    port: Number(env.PORT ?? env.NEWSNEST_PORT ?? 8700),
+    host: env.NEWSNEST_HOST ?? "127.0.0.1",
+    dataDir: env.NEWSNEST_DATA ?? join(root, "data"),
     mode,
     relayUrl,
-    ehloName: env.FREEPOST_EHLO_NAME ?? "localhost",
-    serverIp: env.FREEPOST_SERVER_IP ?? null,
-    rateLimitPerSec: Number(env.FREEPOST_RATE_LIMIT ?? 10),
-    adminPassword: env.FREEPOST_ADMIN_PASSWORD ?? null,
-    publicUrl: env.FREEPOST_PUBLIC_URL?.replace(/\/+$/, "") ?? null,
-    sendRatePerSec: Number(env.FREEPOST_SEND_RATE ?? 10),
-    trustProxy: env.FREEPOST_TRUST_PROXY === "1",
+    ehloName: env.NEWSNEST_EHLO_NAME ?? "localhost",
+    serverIp: env.NEWSNEST_SERVER_IP ?? null,
+    rateLimitPerSec: Number(env.NEWSNEST_RATE_LIMIT ?? 10),
+    adminPassword: env.NEWSNEST_ADMIN_PASSWORD ?? null,
+    publicUrl: env.NEWSNEST_PUBLIC_URL?.replace(/\/+$/, "") ?? null,
+    sendRatePerSec: Number(env.NEWSNEST_SEND_RATE ?? 10),
+    trustProxy: env.NEWSNEST_TRUST_PROXY === "1",
     workerIntervalMs: 1000,
     resolveTxt: (name) => dns.resolveTxt(name),
     ...overrides,

@@ -77,13 +77,13 @@ export function pageHead(title: string, subtitle?: string, ...actions: Child[]):
   return h("header", { class: "page-head" }, h("div", {}, h("h1", {}, title), subtitle && h("p", {}, subtitle)), actions.length ? h("div", { class: "row" }, ...actions) : null);
 }
 
-/** The Freepost logo, as the mark plus wordmark, with a dark-theme variant that CSS swaps in. */
+/** The Newsnest logo: the mark (with a dark-theme variant that CSS swaps in) plus the name set in the display font. */
 export function logo(): HTMLAnchorElement {
   const img = (cls: string, src: string, w: number, h2: number, alt = ""): HTMLImageElement =>
     h("img", { class: cls, src, alt, width: w, height: h2 });
-  return h("a", { class: "logo", href: "/", "aria-label": "Freepost home" },
+  return h("a", { class: "logo", href: "/", "aria-label": "Newsnest home" },
     img("lg-mark on-light", "/brand/mark.png", 475, 225), img("lg-mark on-dark", "/brand/mark-light.png", 475, 225),
-    img("lg-word on-light", "/brand/wordmark.png", 908, 192, "Freepost"), img("lg-word on-dark", "/brand/wordmark-light.png", 908, 192, "Freepost"));
+    h("span", { class: "lg-text" }, "newsnest"));
 }
 
 // ---- form helpers -------------------------------------------------------------
@@ -117,7 +117,7 @@ export const num = (n: number): string => n.toLocaleString();
 
 /** Downloads an authenticated API response (CSV exports) as a file. */
 export async function downloadFile(path: string, filename: string): Promise<void> {
-  const res = await fetch(path, { credentials: "same-origin", headers: { "x-freepost": "1" } });
+  const res = await fetch(path, { credentials: "same-origin", headers: { "x-newsnest": "1" } });
   if (!res.ok) { toast("Download failed", "bad"); return; }
   const url = URL.createObjectURL(await res.blob());
   const a = h("a", { href: url, download: filename });

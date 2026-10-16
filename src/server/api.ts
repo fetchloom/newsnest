@@ -120,7 +120,7 @@ export function createApi(db: DB, cfg: Config, kick: () => void) {
       return reply(res, 200, { setup_required: !hasPassword(db), authenticated: sessionValid(db, token) });
     }
     if (method !== "POST") throw new ApiError(405, "method_not_allowed", `${method} is not allowed here`);
-    if (req.headers["x-freepost"] !== "1") throw new ApiError(403, "csrf", "Missing X-Freepost header");
+    if (req.headers["x-newsnest"] !== "1") throw new ApiError(403, "csrf", "Missing X-Newsnest header");
 
     if (pathname === "/auth/logout") {
       destroySession(db, token);
@@ -136,7 +136,7 @@ export function createApi(db: DB, cfg: Config, kick: () => void) {
       if (hasPassword(db)) throw new ApiError(409, "already_setup", "A password is already set");
       // First-run setup is only open to someone on the machine itself, never through a proxy.
       if (!LOOPBACK.has(ip) || req.headers["x-forwarded-for"]) {
-        throw new ApiError(403, "setup_local_only", "Create the password from the machine running Freepost, or set FREEPOST_ADMIN_PASSWORD");
+        throw new ApiError(403, "setup_local_only", "Create the password from the machine running Newsnest, or set NEWSNEST_ADMIN_PASSWORD");
       }
       if (password.length < MIN_PASSWORD) throw validation(`Use at least ${MIN_PASSWORD} characters`);
       setPassword(db, password);
@@ -175,10 +175,10 @@ export function createApi(db: DB, cfg: Config, kick: () => void) {
       let key: ApiKeyInfo | null = authenticate(db, req.headers.authorization);
       if (!key && !req.headers.authorization && sessionValid(db, parseCookies(req.headers.cookie)[COOKIE])) {
         // Dashboard session. The custom header can't be sent by a cross-site form, which blocks CSRF.
-        if (req.headers["x-freepost"] !== "1") throw new ApiError(403, "csrf", "Missing X-Freepost header");
+        if (req.headers["x-newsnest"] !== "1") throw new ApiError(403, "csrf", "Missing X-Newsnest header");
         key = { id: "session", permission: "full", domain_id: null, session: true };
       }
-      if (!key) throw new ApiError(401, "missing_api_key", "Missing or invalid API key. Send it as: Authorization: Bearer fp_...", { "www-authenticate": "Bearer" });
+      if (!key) throw new ApiError(401, "missing_api_key", "Missing or invalid API key. Send it as: Authorization: Bearer nn_...", { "www-authenticate": "Bearer" });
 
       const wait = allow(key.id);
       if (wait) throw new ApiError(429, "rate_limit_exceeded", "Too many requests", { "retry-after": String(wait) });

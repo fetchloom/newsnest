@@ -1,6 +1,6 @@
 // Replacements for the controls the browser would otherwise draw itself
 // (alert/confirm/prompt, select menus, date and colour pickers, tooltips),
-// so every popup in the dashboard looks like Freepost.
+// so every popup in the dashboard looks like Newsnest.
 import { h, icon } from "./dom.js";
 import { modal } from "./ui.js";
 

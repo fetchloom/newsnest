@@ -32,7 +32,7 @@ export function startLive(h: LiveHandlers): void {
       if (es.readyState !== EventSource.CLOSED) return; // the browser is retrying by itself
       es.close();
       retry = window.setTimeout(() => {
-        api("GET", "/auth/status").then((s) => { if (s.authenticated) connect(); else dispatchEvent(new Event("fp:unauthorized")); }, () => connect());
+        api("GET", "/auth/status").then((s) => { if (s.authenticated) connect(); else dispatchEvent(new Event("nn:unauthorized")); }, () => connect());
       }, 4000);
     };
   };

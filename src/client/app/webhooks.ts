@@ -8,7 +8,7 @@ const EVENTS = ["email.scheduled", "email.queued", "email.sent", "email.delivere
 export async function webhooksPage(): Promise<HTMLElement> {
   const tableHost = h("div");
   const banner = h("div");
-  const url = h("input", { class: "input", type: "url", placeholder: "https://example.com/hooks/freepost", required: true });
+  const url = h("input", { class: "input", type: "url", placeholder: "https://example.com/hooks/newsnest", required: true });
   const boxes = EVENTS.map((e) => h("input", { type: "checkbox", value: e }));
   const create = h("button", { class: "btn btn-solid", type: "submit" }, "Add webhook");
   const error = h("div", { class: "error", role: "alert" });
@@ -40,7 +40,7 @@ export async function webhooksPage(): Promise<HTMLElement> {
         const w = await api("POST", "/webhooks", { url: url.value, events: boxes.filter((b) => b.checked).map((b) => b.value) });
         url.value = ""; boxes.forEach((b) => { b.checked = false; });
         banner.replaceChildren(h("div", { class: "notice ok", style: "display:block" },
-          h("b", {}, "Signing secret."), " Use it to verify the fp-signature header on each request.",
+          h("b", {}, "Signing secret."), " Use it to verify the newsnest-signature header on each request.",
           h("div", { class: "secret" }, h("span", { class: "grow" }, w.secret), copyButton(w.secret))));
         await draw();
       } catch (err) { error.textContent = (err as Error).message; }

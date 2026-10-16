@@ -1,6 +1,6 @@
-# Freepost
+# Newsnest
 
-**Start a newsletter you own.** Freepost is a free, open-source newsletter platform and email API in one. Write in a block editor, grow your list with forms, referrals and polls, automate welcome emails, publish a website, and see opens and clicks live. No monthly fee, no cut of your earnings, no subscriber limits, and your list stays in a single file you control.
+**Start a newsletter you own.** Newsnest is a free, open-source newsletter platform and email API in one. Write in a block editor, grow your list with forms, referrals and polls, automate welcome emails, publish a website, and see opens and clicks live. No monthly fee, no cut of your earnings, no subscriber limits, and your list stays in a single file you control.
 
 It is the pieces of [Beehiiv](https://www.beehiiv.com) (writing, growing, analytics) and [Resend](https://resend.com) (a developer email API) in one program with no dependencies.
 
@@ -12,7 +12,7 @@ It is the pieces of [Beehiiv](https://www.beehiiv.com) (writing, growing, analyt
 ## Try it in a minute
 
 ```sh
-git clone https://github.com/fetchloom/freepost && cd freepost
+git clone https://github.com/fetchloom/newsnest && cd newsnest
 node server.ts          # then open http://127.0.0.1:8700/app/ and choose a password
 ```
 
@@ -25,13 +25,13 @@ node build.ts                # static landing page and dashboard files into dist
 
 ## Dashboard
 
-Open http://127.0.0.1:8700/app/. The first visit asks you to choose a password (only from the machine running Freepost;
-on a server, set `FREEPOST_ADMIN_PASSWORD` instead). From there you can send email, read the event history of every
+Open http://127.0.0.1:8700/app/. The first visit asks you to choose a password (only from the machine running Newsnest;
+on a server, set `NEWSNEST_ADMIN_PASSWORD` instead). From there you can send email, read the event history of every
 message, add and verify domains, create API keys and webhooks, and manage suppressions. Change the password under
-Settings. Forgot it: start the server once with `FREEPOST_ADMIN_PASSWORD` set to a new one, sign in, and unset it
+Settings. Forgot it: start the server once with `NEWSNEST_ADMIN_PASSWORD` set to a new one, sign in, and unset it
 (while it is set, every start resets the password to it).
 
-Sessions use an HttpOnly, SameSite=Strict cookie, and every dashboard request must carry an `X-Freepost` header, which
+Sessions use an HttpOnly, SameSite=Strict cookie, and every dashboard request must carry an `X-Newsnest` header, which
 cross-site pages can't send. Put it behind HTTPS if you expose it beyond localhost.
 
 ### Live updates
@@ -40,28 +40,28 @@ The dashboard keeps itself current. A small event stream (`GET /live`, dashboard
 
 ## Sending modes
 
-Set with `FREEPOST_MODE`:
+Set with `NEWSNEST_MODE`:
 
 | mode | what happens | needs |
 | --- | --- | --- |
 | `outbox` (default) | messages are written to `data/outbox/*.eml` | nothing |
-| `relay` | handed to your SMTP server (`FREEPOST_RELAY_URL=smtp://user:pass@host:587`, or `smtps://…:465`) | an SMTP account you already have |
+| `relay` | handed to your SMTP server (`NEWSNEST_RELAY_URL=smtp://user:pass@host:587`, or `smtps://…:465`) | an SMTP account you already have |
 | `direct` | delivered to the recipient's mail server on port 25 | a server with a clean static IP, reverse DNS and port 25 open |
 
-A home connection will not reach inboxes in `direct` mode. In `relay` mode Freepost can see that the relay accepted the
+A home connection will not reach inboxes in `direct` mode. In `relay` mode Newsnest can see that the relay accepted the
 message (`email.sent`) but not what happened after; `email.delivered` is only emitted in `direct` mode.
 
-Other settings: `PORT`, `FREEPOST_DATA`, `FREEPOST_EHLO_NAME`, `FREEPOST_SERVER_IP` (used in the suggested SPF record),
-`FREEPOST_RATE_LIMIT` (requests per second per key, default 10).
+Other settings: `PORT`, `NEWSNEST_DATA`, `NEWSNEST_EHLO_NAME`, `NEWSNEST_SERVER_IP` (used in the suggested SPF record),
+`NEWSNEST_RATE_LIMIT` (requests per second per key, default 10).
 
 ## API
 
-All requests need `Authorization: Bearer fp_…`. Bodies and responses are JSON. Errors look like
+All requests need `Authorization: Bearer nn_…`. Bodies and responses are JSON. Errors look like
 `{ "statusCode": 422, "name": "validation_error", "message": "…" }`.
 
 ```sh
 curl -X POST http://127.0.0.1:8700/emails \
-  -H "Authorization: Bearer $FREEPOST_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $NEWSNEST_KEY" -H "Content-Type: application/json" \
   -d '{"from":"Ada <ada@yourdomain.com>","to":["hello@example.com"],"subject":"Hi","markdown":"No tiers. **No meters.**"}'
 ```
 
@@ -86,7 +86,7 @@ sending from an unverified domain is refused (403).
 A permanent SMTP error (5xx) bounces the recipient and adds them to the suppression list. Temporary errors retry after
 30 s, 2 min, 10 min, 1 h and 4 h, then fail.
 
-**Webhooks.** Each POST carries `fp-id`, `fp-timestamp` and `fp-signature: v1,<base64 HMAC-SHA256 of "id.timestamp.body">`
+**Webhooks.** Each POST carries `newsnest-id`, `newsnest-timestamp` and `newsnest-signature: v1,<base64 HMAC-SHA256 of "id.timestamp.body">`
 keyed with the webhook's `whsec_…` secret. `verifySignature` in `src/server/webhooks.ts` shows the check.
 
 
@@ -97,7 +97,7 @@ Everything in the dashboard sidebar under Publish, Audience and Grow.
 | | |
 | --- | --- |
 | **Posts** | Block editor with drag-and-drop: text (Markdown), heading, image (upload or link), button, divider, spacer, quote, list, code, HTML, social links, poll, survey, referral box, subscribe box, and dynamic blocks that only some subscribers see. Templates, merge tags (`{{first_name \| friend}}`), live email and website preview, test emails, autosave. |
-| **Sending** | Send now or schedule. Audience is everyone, a tag, or a segment. A/B tests on subject lines (test group, wait, winner goes to the rest). Paced with `FREEPOST_SEND_RATE`. Every email has one-click unsubscribe headers and a postal-address footer. |
+| **Sending** | Send now or schedule. Audience is everyone, a tag, or a segment. A/B tests on subject lines (test group, wait, winner goes to the rest). Paced with `NEWSNEST_SEND_RATE`. Every email has one-click unsubscribe headers and a postal-address footer. |
 | **Subscribers** | Double opt-in, welcome email, tags, custom fields, CSV import and export, activity history, engagement levels (new, active, at risk, inactive). |
 | **Segments** | Dynamic rules with nested all/any groups (tags, fields, opens, clicks, engagement, referrals, polls, other segments), or static lists. Live match count. |
 | **Forms** | Hosted sign-up page, inline embed, pop-up, exit-intent, slide-in, plain iframe. Honeypot and rate limit against bots. |
@@ -113,18 +113,18 @@ Not included, on purpose: paid subscriptions, the ad network, recommendations an
 
 Step-by-step guide, with Docker and HTTPS: `docs/self-hosting.md`. The short version:
 
-1. Set the public address people can reach: `FREEPOST_PUBLIC_URL=https://news.example.com` (or Settings in the dashboard). Confirm, unsubscribe and tracking links use it. On localhost they only work on your computer.
-2. Choose how mail leaves: `FREEPOST_MODE=relay` with `FREEPOST_RELAY_URL`, or `direct` from a server with a clean IP and port 25.
+1. Set the public address people can reach: `NEWSNEST_PUBLIC_URL=https://news.example.com` (or Settings in the dashboard). Confirm, unsubscribe and tracking links use it. On localhost they only work on your computer.
+2. Choose how mail leaves: `NEWSNEST_MODE=relay` with `NEWSNEST_RELAY_URL`, or `direct` from a server with a clean IP and port 25.
 3. Add and verify your sending domain (Domains), then set the From and postal address (Settings).
-4. Put HTTPS in front (Caddy or nginx), pass `X-Forwarded-Proto`, and set `FREEPOST_TRUST_PROXY=1` so rate limits see real client addresses.
+4. Put HTTPS in front (Caddy or nginx), pass `X-Forwarded-Proto`, and set `NEWSNEST_TRUST_PROXY=1` so rate limits see real client addresses.
 5. For your own site domain, point its DNS at the server and enter it under Website.
 
-More settings: `FREEPOST_PUBLIC_URL`, `FREEPOST_SEND_RATE` (newsletter messages per second, default 10; API mail is not paced), `FREEPOST_TRUST_PROXY`.
+More settings: `NEWSNEST_PUBLIC_URL`, `NEWSNEST_SEND_RATE` (newsletter messages per second, default 10; API mail is not paced), `NEWSNEST_TRUST_PROXY`.
 
 ### Things to know
 
 - **Open tracking is approximate.** Apple Mail Privacy Protection and some image proxies load the tracking pixel for people who never opened the email. Clicks from security scanners are filtered (shown as "verified clicks"), but not perfectly.
-- **No geography or read time.** Freepost stores no IP addresses and has no location database.
+- **No geography or read time.** Newsnest stores no IP addresses and has no location database.
 - **One publication per install.** Run a second instance for a second newsletter.
 - **Automation webhook steps and API webhooks can call any http(s) address**, including your internal network. That is fine for a single-owner install; don't give untrusted people dashboard access.
 - **Subscribers are active, pending, unsubscribed or bounced.** Hard bounces move a subscriber to bounced and add them to the suppression list.
@@ -134,11 +134,11 @@ More settings: `FREEPOST_PUBLIC_URL`, `FREEPOST_SEND_RATE` (newsletter messages 
 All of these need a full-access API key (create one under API keys in the dashboard). Routes: `/publication`, `/subscribers` (+ `/import`, `/export.csv`, `/:id/activity`), `/segments` (+ `/preview`, `/:id/snapshot`, `/:id/members`), `/posts` (+ `/:id/schedule`, `/unschedule`, `/publish`, `/preview`, `/test`, `/stats`), `/templates`, `/pages`, `/polls`, `/surveys`, `/rewards`, `/referrals`, `/automations` (+ `/activate`, `/pause`, `/runs`), `/events` (custom events), `/analytics/audience`, `/uploads`, `/forms`. Adding a subscriber:
 
 ```sh
-curl -X POST http://127.0.0.1:8700/subscribers -H "Authorization: Bearer $FREEPOST_KEY" -H "Content-Type: application/json" \
+curl -X POST http://127.0.0.1:8700/subscribers -H "Authorization: Bearer $NEWSNEST_KEY" -H "Content-Type: application/json" \
   -d '{"email":"ada@example.com","fields":{"first_name":"Ada"},"tags":["vip"],"send_welcome_email":true}'
 ```
 
-Embed a form anywhere: `<div data-freepost-form></div><script async src="https://news.example.com/embed.js"></script>`.
+Embed a form anywhere: `<div data-newsnest-form></div><script async src="https://news.example.com/embed.js"></script>`.
 
 ## Layout
 
@@ -158,7 +158,7 @@ Self-hosted variable fonts in `public/fonts/` (SIL OFL, ~95 KB): Bricolage Grote
 
 ## License
 
-Freepost is free software under the [GNU AGPL v3](LICENSE). Run it, change it and share it. If you run a modified version as a service for other people, you must share your changes under the same license.
+Newsnest is free software under the [GNU AGPL v3](LICENSE). Run it, change it and share it. If you run a modified version as a service for other people, you must share your changes under the same license.
 
 Made by Fetchloom and Alex.
 

@@ -10,4 +10,4 @@ labels: bug
 
 **How to reproduce it**
 
-**Your setup** (Node version, how you run Freepost, sending mode: outbox, relay or direct)
+**Your setup** (Node version, how you run Newsnest, sending mode: outbox, relay or direct)

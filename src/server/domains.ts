@@ -20,7 +20,7 @@ export function createDomain(db: DB, nameRaw: unknown) {
 
   const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const id = newId("dom");
-  db.prepare("INSERT INTO domains (id, name, selector, dkim_private, dkim_public, created_at) VALUES (?, ?, 'freepost', ?, ?, ?)").run(
+  db.prepare("INSERT INTO domains (id, name, selector, dkim_private, dkim_public, created_at) VALUES (?, ?, 'newsnest', ?, ?, ?)").run(
     id,
     name,
     privateKey.export({ type: "pkcs8", format: "pem" }) as string,

@@ -4,7 +4,7 @@ import { h } from "./dom.js";
 import { dateTimeField } from "./controls.js";
 import { busy, pageHead, toast } from "./ui.js";
 
-const LAST_FROM = "freepost:last-from";
+const LAST_FROM = "newsnest:last-from";
 const list = (v: string): string[] => v.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
 
 export async function sendPage(): Promise<HTMLElement> {

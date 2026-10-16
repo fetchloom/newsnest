@@ -228,7 +228,7 @@ function runStep(db: DB, cfg: Config, run: RunRow, sub: SubscriberRow, step: Ste
     case "remove_tag": db.prepare("DELETE FROM subscriber_tags WHERE subscriber_id = ? AND tag = ?").run(sub.id, step.tag); return {};
     case "webhook": {
       void fetch(step.url, {
-        method: "POST", headers: { "content-type": "application/json", "user-agent": "Freepost-Automations/1" }, redirect: "manual", signal: AbortSignal.timeout(10_000),
+        method: "POST", headers: { "content-type": "application/json", "user-agent": "Newsnest-Automations/1" }, redirect: "manual", signal: AbortSignal.timeout(10_000),
         body: JSON.stringify({ type: "automation.step", automation_id: run.automation_id, subscriber: { id: sub.id, email: sub.email, fields: parseJson(sub.fields, {}) } }),
       }).catch((e) => console.error("automation webhook:", (e as Error).message));
       return {};

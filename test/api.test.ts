@@ -25,7 +25,7 @@ const mail = (extra: Record<string, unknown> = {}) => ({
 describe("auth", () => {
   test("rejects missing and bad keys", async () => {
     assert.equal((await h.call("GET", "/emails", undefined, {}, null)).status, 401);
-    assert.equal((await h.call("GET", "/emails", undefined, {}, "fp_nope")).status, 401);
+    assert.equal((await h.call("GET", "/emails", undefined, {}, "nn_nope")).status, 401);
   });
 
   test("/health needs no key", async () => {
@@ -36,7 +36,7 @@ describe("auth", () => {
   test("sending keys can send but not manage", async () => {
     const created = await h.call("POST", "/api-keys", { name: "ci", permission: "sending" });
     assert.equal(created.status, 201);
-    assert.match(created.json.key, /^fp_/);
+    assert.match(created.json.key, /^nn_/);
     const sk = created.json.key;
     assert.equal((await h.call("GET", "/emails", undefined, {}, sk)).status, 200);
     assert.equal((await h.call("GET", "/domains", undefined, {}, sk)).status, 403);
@@ -200,8 +200,8 @@ describe("bounces, suppressions and webhooks", () => {
     assert.equal(payload.type, "email.bounced");
     assert.equal(payload.data.email_id, r.json.id);
     assert.deepEqual(payload.data.to, ["gone@dest.test"]);
-    assert.ok(verifySignature(hook.json.secret, { id: call.headers["fp-id"], timestamp: call.headers["fp-timestamp"], signature: call.headers["fp-signature"] }, call.body));
-    assert.ok(!verifySignature("whsec_wrong", { id: call.headers["fp-id"], timestamp: call.headers["fp-timestamp"], signature: call.headers["fp-signature"] }, call.body));
+    assert.ok(verifySignature(hook.json.secret, { id: call.headers["newsnest-id"], timestamp: call.headers["newsnest-timestamp"], signature: call.headers["newsnest-signature"] }, call.body));
+    assert.ok(!verifySignature("whsec_wrong", { id: call.headers["newsnest-id"], timestamp: call.headers["newsnest-timestamp"], signature: call.headers["newsnest-signature"] }, call.body));
 
     const sup = await h.call("GET", "/suppressions");
     assert.ok(sup.json.data.some((s: any) => s.email === "gone@dest.test" && s.reason === "bounce"));

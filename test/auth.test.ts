@@ -8,7 +8,7 @@ before(async () => { h = await harness(); });
 after(() => h.close());
 
 const post = (path: string, body: unknown, extra: Record<string, string> = {}) =>
-  fetch(h.base + path, { method: "POST", headers: { "content-type": "application/json", "x-freepost": "1", ...extra }, body: JSON.stringify(body) });
+  fetch(h.base + path, { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1", ...extra }, body: JSON.stringify(body) });
 
 const cookieOf = (res: Response): string => (res.headers.get("set-cookie") ?? "").split(";")[0];
 
@@ -21,7 +21,7 @@ describe("dashboard login", () => {
     assert.equal((await post("/auth/setup", { password: "short" })).status, 422);
   });
 
-  test("setup needs the X-Freepost header", async () => {
+  test("setup needs the X-Newsnest header", async () => {
     const res = await fetch(h.base + "/auth/setup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: "correct horse battery" }) });
     assert.equal(res.status, 403);
   });
@@ -37,21 +37,21 @@ describe("dashboard login", () => {
   });
 
   test("a session can use the API, but only with the custom header", async () => {
-    const withHeader = await fetch(h.base + "/stats", { headers: { cookie, "x-freepost": "1" } });
+    const withHeader = await fetch(h.base + "/stats", { headers: { cookie, "x-newsnest": "1" } });
     assert.equal(withHeader.status, 200);
     assert.equal((await withHeader.json()).emails, 0);
     assert.equal((await fetch(h.base + "/stats", { headers: { cookie } })).status, 403, "cookie alone must not be enough (CSRF)");
-    assert.equal((await fetch(h.base + "/stats", { headers: { "x-freepost": "1" } })).status, 401);
+    assert.equal((await fetch(h.base + "/stats", { headers: { "x-newsnest": "1" } })).status, 401);
   });
 
   test("a session can send mail and create keys", async () => {
     await verifiedDomain(h);
     const send = await fetch(h.base + "/emails", {
-      method: "POST", headers: { cookie, "x-freepost": "1", "content-type": "application/json" },
+      method: "POST", headers: { cookie, "x-newsnest": "1", "content-type": "application/json" },
       body: JSON.stringify({ from: "a@example.com", to: "b@dest.test", subject: "from dashboard", text: "hi" }),
     });
     assert.equal(send.status, 201);
-    const keys = await fetch(h.base + "/api-keys", { method: "POST", headers: { cookie, "x-freepost": "1", "content-type": "application/json" }, body: JSON.stringify({ name: "dash" }) });
+    const keys = await fetch(h.base + "/api-keys", { method: "POST", headers: { cookie, "x-newsnest": "1", "content-type": "application/json" }, body: JSON.stringify({ name: "dash" }) });
     assert.equal(keys.status, 201);
   });
 
@@ -66,7 +66,7 @@ describe("dashboard login", () => {
   test("logout ends the session", async () => {
     const res = await post("/auth/logout", {}, { cookie });
     assert.equal(res.status, 200);
-    assert.equal((await fetch(h.base + "/stats", { headers: { cookie, "x-freepost": "1" } })).status, 401);
+    assert.equal((await fetch(h.base + "/stats", { headers: { cookie, "x-newsnest": "1" } })).status, 401);
   });
 
   test("markdown preview renders and escapes", async () => {
@@ -81,11 +81,11 @@ describe("changing and recovering the password", () => {
   let cookie = "";
   before(async () => {
     hh = await harness({ adminPassword: "original password!" });
-    const res = await fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-freepost": "1" }, body: JSON.stringify({ password: "original password!" }) });
+    const res = await fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1" }, body: JSON.stringify({ password: "original password!" }) });
     cookie = cookieOf(res);
   });
   after(() => hh.close());
-  const change = (body: unknown, c = cookie) => fetch(hh.base + "/auth/password", { method: "POST", headers: { "content-type": "application/json", "x-freepost": "1", cookie: c }, body: JSON.stringify(body) });
+  const change = (body: unknown, c = cookie) => fetch(hh.base + "/auth/password", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1", cookie: c }, body: JSON.stringify(body) });
 
   test("needs a session, the right current password and a long enough new one", async () => {
     assert.equal((await change({ password: "original password!", new_password: "a brand new password" }, "")).status, 401);
@@ -94,18 +94,18 @@ describe("changing and recovering the password", () => {
   });
 
   test("changing it keeps you signed in, signs out other sessions, and the old password stops working", async () => {
-    const other = cookieOf(await fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-freepost": "1" }, body: JSON.stringify({ password: "original password!" }) }));
+    const other = cookieOf(await fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1" }, body: JSON.stringify({ password: "original password!" }) }));
     const res = await change({ password: "original password!", new_password: "a brand new password" });
     assert.equal(res.status, 200);
     const fresh = cookieOf(res);
     assert.equal((await (await fetch(hh.base + "/auth/status", { headers: { cookie: fresh } })).json()).authenticated, true);
     assert.equal((await (await fetch(hh.base + "/auth/status", { headers: { cookie: other } })).json()).authenticated, false);
-    const login = (password: string) => fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-freepost": "1" }, body: JSON.stringify({ password }) });
+    const login = (password: string) => fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1" }, body: JSON.stringify({ password }) });
     assert.equal((await login("original password!")).status, 401);
     assert.equal((await login("a brand new password")).status, 200);
   });
 
-  test("starting the server with FREEPOST_ADMIN_PASSWORD resets a forgotten password", async () => {
+  test("starting the server with NEWSNEST_ADMIN_PASSWORD resets a forgotten password", async () => {
     const { createApp } = await import("../src/server/app.ts");
     const { checkPassword } = await import("../src/server/auth.ts");
     const first = createApp({ ...hh.cfg, adminPassword: null }, { serveSite: false });

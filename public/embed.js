@@ -1,13 +1,13 @@
 /*
- * Freepost subscribe form embed.
+ * Newsnest subscribe form embed.
  *
- *   <div data-freepost-form></div>
+ *   <div data-newsnest-form></div>
  *   <script async src="https://news.example.com/embed.js"></script>            inline form
  *   <script async src="https://news.example.com/embed.js" data-mode="popup" data-delay="8"></script>
  *   <script async src="https://news.example.com/embed.js" data-mode="popup" data-trigger="exit"></script>
  *   <script async src="https://news.example.com/embed.js" data-mode="slide-in" data-delay="12"></script>
  *
- * The form itself is an iframe served by Freepost, so this page never touches subscriber input.
+ * The form itself is an iframe served by Newsnest, so this page never touches subscriber input.
  * A visitor who closes a popup or slide-in isn't asked again for 7 days.
  */
 (function () {
@@ -16,7 +16,7 @@
   if (!script) return;
   var origin = new URL(script.src).origin;
   var mode = script.getAttribute("data-mode") || "inline";
-  var KEY = "freepost-dismissed";
+  var KEY = "newsnest-dismissed";
 
   function frame(height) {
     var f = document.createElement("iframe");
@@ -40,13 +40,13 @@
     document.removeEventListener("keydown", onKey);
   }
   var onKey = function (e) {
-    if (e.key === "Escape") { var el = document.querySelector("[data-freepost-overlay]"); if (el) close(el); }
+    if (e.key === "Escape") { var el = document.querySelector("[data-newsnest-overlay]"); if (el) close(el); }
   };
 
   function overlay(kind) {
-    if (dismissed() || document.querySelector("[data-freepost-overlay]")) return;
+    if (dismissed() || document.querySelector("[data-newsnest-overlay]")) return;
     var wrap = document.createElement("div");
-    wrap.setAttribute("data-freepost-overlay", kind);
+    wrap.setAttribute("data-newsnest-overlay", kind);
     wrap.setAttribute("role", "dialog");
     wrap.setAttribute("aria-label", "Subscribe");
     var card = document.createElement("div");
@@ -58,18 +58,18 @@
     btn.onclick = function () { close(wrap); };
     card.style.cssText = "position:relative;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:18px 18px 8px;box-sizing:border-box;";
     if (kind === "popup") {
-      wrap.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:2147483000;padding:16px;animation:fp-in .25s ease";
+      wrap.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:2147483000;padding:16px;animation:nn-in .25s ease";
       card.style.width = "min(480px,100%)";
       wrap.addEventListener("click", function (e) { if (e.target === wrap) close(wrap); });
     } else {
-      wrap.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483000;width:min(380px,calc(100vw - 32px));animation:fp-in .3s ease";
+      wrap.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483000;width:min(380px,calc(100vw - 32px));animation:nn-in .3s ease";
       card.style.width = "100%";
     }
     card.appendChild(btn);
     card.appendChild(frame(kind === "popup" ? 250 : 230));
     wrap.appendChild(card);
     var style = document.createElement("style");
-    style.textContent = "@keyframes fp-in{from{opacity:0;transform:translateY(12px)}}@media (prefers-reduced-motion:reduce){[data-freepost-overlay]{animation:none!important}}";
+    style.textContent = "@keyframes nn-in{from{opacity:0;transform:translateY(12px)}}@media (prefers-reduced-motion:reduce){[data-newsnest-overlay]{animation:none!important}}";
     document.head.appendChild(style);
     document.body.appendChild(wrap);
     document.addEventListener("keydown", onKey);
@@ -78,7 +78,7 @@
 
   function start() {
     if (mode === "inline") {
-      var hosts = document.querySelectorAll("[data-freepost-form]");
+      var hosts = document.querySelectorAll("[data-newsnest-form]");
       for (var i = 0; i < hosts.length; i++) hosts[i].appendChild(frame(230));
       return;
     }
