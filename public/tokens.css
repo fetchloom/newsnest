@@ -2,8 +2,6 @@
 @font-face { font-family: "Instrument Sans"; src: url("/fonts/instrument-sans.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
 @font-face { font-family: "Martian Mono"; src: url("/fonts/martian-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
 
-@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-
 :root {
   --bg: #fdfdfd;
   --fg: #191919;
@@ -19,11 +17,6 @@
   --ok: #30a46c;
   --warn: #d98a00;
   --bad: #e5484d;
-  --code-k: #8a4fd6;
-  --code-s: #1a7f5a;
-  --code-f: #c2410c;
-  --code-v: #1d4ed8;
-  --code-p: #6b6f72;
   --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: "Instrument Sans", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
   --display: "Bricolage", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
@@ -44,11 +37,6 @@
   --raised: #141416;
   --solid-bg: #f0f0f0;
   --solid-fg: #09090a;
-  --code-k: #c4a1ff;
-  --code-s: #7ee0b0;
-  --code-f: #ffb27a;
-  --code-v: #8cb4ff;
-  --code-p: #8b8f92;
   color-scheme: dark;
 }
 

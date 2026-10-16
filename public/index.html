@@ -34,7 +34,7 @@
           <svg class="i-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           <svg class="i-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>
         </button>
-        <a class="nav-signin" href="/app/">Sign in</a>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/fetchloom/freepost">GitHub</a>
         <a class="btn btn-solid btn-sm" href="#start">Get started</a>
       </div>
     </div>
@@ -53,6 +53,7 @@
           <a class="btn btn-solid" href="#start">Get started free</a>
           <a class="btn btn-ghost" href="#features">See what's inside <span class="arrow" aria-hidden="true">→</span></a>
         </div>
+        <p class="fine" data-reveal style="--d:5">Free and open source. You run it on your own computer or server.</p>
       </div>
       <div class="wrap">
         <div class="art" id="art" data-reveal style="--d:4" aria-hidden="true">
@@ -78,16 +79,6 @@
       </div>
     </section>
 
-    <!-- Numbers -->
-    <section class="stats">
-      <div class="wrap stats-in">
-        <div class="stat" data-reveal><div class="num"><span class="pre">$</span><span data-count data-from="99" data-to="0">0</span></div><p>per month</p></div>
-        <div class="stat" data-reveal style="--d:1"><div class="num"><span data-count data-from="10" data-to="0">0</span><span class="pre">%</span></div><p>cut of your earnings</p></div>
-        <div class="stat" data-reveal style="--d:2"><div class="num"><span data-count data-from="12" data-to="0">0</span></div><p>subscriber limits</p></div>
-        <div class="stat" data-reveal style="--d:3"><div class="num"><span data-count data-from="0" data-to="100">100</span><span class="pre">%</span></div><p>yours: list, data, brand</p></div>
-      </div>
-    </section>
-
     <!-- Features -->
     <section class="section" id="features">
       <div class="wrap">
@@ -102,75 +93,7 @@
           <article class="feat"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span><h3>Know your readers</h3><p>See who opens and clicks, then send each group the things they care about.</p></article>
           <article class="feat"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></span><h3>Put it on autopilot</h3><p>Welcome series, follow-ups and win-back emails that send themselves.</p></article>
           <article class="feat"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 100 18 9 9 0 000-18z"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><h3>A website, included</h3><p>Every issue gets its own page, with an archive, RSS and your own domain. Keep some posts for subscribers only.</p></article>
-          <article class="feat"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Keep what you build</h3><p>Your list and your data stay with you. Export everything any time. No lock-in.</p></article>
-        </div>
-
-        <div class="show" id="features-show">
-          <div class="show-row" data-reveal>
-            <div class="show-text">
-              <p class="eyebrow">Write</p>
-              <h3>Write once. Email it and publish it.</h3>
-              <p>Drag text, images, buttons and polls into place. Greet each reader by name, preview exactly what they will see, and send yourself a test first. Schedule it for later, or try two subject lines and let the winner go to everyone else.</p>
-            </div>
-            <div class="mock" aria-hidden="true">
-              <div class="m-bar"><span class="m-title">Issue #42 · October</span><span class="m-save">Saved</span><span class="m-btn">Send…</span></div>
-              <div class="m-edit">
-                <div class="m-rail"><b>Blocks</b><span>Text</span><span>Image</span><span>Button</span><span>Poll</span><span>Referral</span></div>
-                <div class="m-canvas">
-                  <div class="m-block"><i class="m-grip">⋮⋮</i><div class="m-h">Hello, {{ first_name | there }}</div></div>
-                  <div class="m-block"><i class="m-grip">⋮⋮</i><div class="m-lines"><i></i><i></i><i class="short"></i></div></div>
-                  <div class="m-block"><i class="m-grip">⋮⋮</i><span class="m-cta">Read the full issue</span></div>
-                  <div class="m-block"><i class="m-grip">⋮⋮</i>
-                    <div class="m-poll"><b>What should we cover next?</b>
-                      <span class="opt on"><em style="--w:62%"></em><span>Deliverability</span><u>62%</u></span>
-                      <span class="opt"><em style="--w:38%"></em><span>Automations</span><u>38%</u></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="show-row flip" data-reveal>
-            <div class="show-text">
-              <p class="eyebrow">Audience</p>
-              <h3>Talk to the right people, not everyone.</h3>
-              <p>Group readers by what they open, click, answer or share. Groups stay up to date on their own, and you see how many people match while you build.</p>
-            </div>
-            <div class="mock" aria-hidden="true">
-              <div class="m-bar"><span class="m-title">Segment · Engaged readers</span><span class="m-save">Live</span></div>
-              <div class="m-rules">
-                <div class="m-rule"><span class="m-f">Tag</span><span class="m-f">has</span><span class="m-f on">vip</span></div>
-                <div class="m-join">and</div>
-                <div class="m-rule"><span class="m-f">Opened</span><span class="m-f">in the last</span><span class="m-f on">30 days</span></div>
-                <div class="m-join">and</div>
-                <div class="m-rule"><span class="m-f">Referrals</span><span class="m-f">at least</span><span class="m-f on">2</span></div>
-              </div>
-              <div class="m-result">
-                <div><div class="m-big"><span data-count data-group data-from="0" data-to="1284">1,284</span></div><div class="m-sub">people match</div></div>
-                <div class="m-meter"><i style="--w:14%"></i></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="show-row" data-reveal>
-            <div class="show-text">
-              <p class="eyebrow">Growth</p>
-              <h3>Watch your newsletter grow, live.</h3>
-              <p>Your dashboard updates by itself. See opens, clicks and new subscribers arrive as they happen, with robots and security scanners filtered out so the numbers are real.</p>
-            </div>
-            <div class="mock" aria-hidden="true">
-              <div class="m-bar"><span class="m-title">Overview</span><span class="m-live"><i></i>Live</span></div>
-              <div class="m-stats">
-                <div><b>12,480</b><span>Subscribers</span></div>
-                <div><b>48%</b><span>Open rate</span></div>
-                <div><b>9.1%</b><span>Click rate</span></div>
-                <div><b class="up">+213</b><span>Net new</span></div>
-              </div>
-              <div class="m-chart"><iNone style="--n:1;--h:30%"></i><iNone style="--n:2;--h:42%"></i><iNone style="--n:3;--h:36%"></i><iNone style="--n:4;--h:55%"></i><iNone style="--n:5;--h:48%"></i><iNone style="--n:6;--h:62%"></i><iNone style="--n:7;--h:58%"></i><iNone style="--n:8;--h:44%"></i><iNone style="--n:9;--h:70%"></i><iNone style="--n:10;--h:66%"></i><iNone style="--n:11;--h:52%"></i><iNone style="--n:12;--h:76%"></i><iNone style="--n:13;--h:68%"></i><i class="now" style="--n:14;--h:92%"></i></div>
-              <div class="m-toasts" data-toasts><span>New subscriber: ada@example.com</span></div>
-            </div>
-          </div>
+          <article class="feat"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg></span><h3>An email API, too</h3><p>Building an app? Send email from your own code, with delivery tracking built in.</p></article>
         </div>
       </div>
     </section>
@@ -190,10 +113,9 @@
             </thead>
             <tbody>
               <tr><th>Monthly price</th><td class="us">$0</td><td>Free to 3,000 emails, then from $20</td><td>Free to 2,500 subscribers, then from $59</td></tr>
-              <tr><th>Contact cap</th><td class="us">None</td><td>1,000 on Free</td><td>2,500 on Free</td></tr>
-              <tr><th>Sending limits</th><td class="us">Your server's</td><td>100 a day on Free</td><td>Set by plan</td></tr>
+              <tr><th>List size limit</th><td class="us">None</td><td>1,000 on Free</td><td>2,500 on Free</td></tr>
               <tr><th>Where it runs</th><td class="us">Your machine</td><td>Their cloud</td><td>Their cloud</td></tr>
-              <tr><th>Your data</th><td class="us">One SQLite file</td><td>Their database</td><td>Their database</td></tr>
+              <tr><th>Your data</th><td class="us">A single file you control</td><td>Their database</td><td>Their database</td></tr>
             </tbody>
           </table>
         </div>
@@ -201,48 +123,6 @@
       </div>
     </section>
 
-
-    <!-- Developers -->
-    <section class="section" id="developers">
-      <div class="wrap">
-        <header class="section-head">
-          <p class="eyebrow" data-reveal>For developers</p>
-          <h2 class="h2" data-reveal style="--d:1">Also an email API.</h2>
-          <p class="sub" data-reveal style="--d:2">Building an app? Send email from your own code, with scheduling, delivery events and a suppression list built in. Everything the newsletter uses, available over a simple API.</p>
-        </header>
-      </div>
-      <div class="wrap">
-        <div class="stage" id="stage" data-reveal>
-          <div class="stage-bar">
-            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="stage-file">send.ts</span>
-            <span class="stage-status" id="status" aria-live="polite"><b></b>201 Created</span>
-          </div>
-          <div class="stage-body">
-            <pre class="code" id="code" aria-label="Example: sending an email with the Freepost API"></pre>
-            <div class="out">
-              <div class="mail" id="mail">
-                <div class="mail-head">
-                  <span class="avatar" aria-hidden="true">A</span>
-                  <div>
-                    <div class="mail-from">Ada <span>ada@yourdomain.com</span></div>
-                    <div class="mail-to">to hello@example.com</div>
-                  </div>
-                </div>
-                <div class="mail-sub">It's free. Really.</div>
-                <p class="mail-body">No tiers. No meters. Nothing to upgrade.</p>
-              </div>
-              <ol class="events" id="events">
-                <li><i></i><span>queued</span><em>0 ms</em></li>
-                <li><i></i><span>sent</span><em>312 ms</em></li>
-                <li><i></i><span>delivered</span><em>1.4 s</em></li>
-                <li><i></i><span>opened</span><em>2.9 s</em></li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Get started -->
     <section class="section" id="start">
@@ -257,10 +137,7 @@
           <li class="step" data-reveal style="--d:2"><span class="n">03</span><h3>Send your first issue</h3><p>Open your dashboard, write something, and press send. That is it.</p><a class="mini" href="/app/"><span>→</span> Open the dashboard</a></li>
         </ol>
 
-        <div class="honest" data-reveal>
-          <h3>The honest part</h3>
-          <p>Free means we charge nothing. You still need somewhere for Freepost to run, and a way for email to leave it, such as an email service you already use. The guide explains both in plain language.</p>
-        </div>
+        <p class="note" data-reveal>Free means we charge nothing. You still need somewhere to run Freepost and a way to send email, such as a mail service you already use. The guide explains both.</p>
 
         <div class="wait" data-reveal>
           <div>
@@ -285,26 +162,13 @@
         </header>
         <div class="faq" data-reveal>
           <details><summary>Is it really free?</summary><p>Yes. No plans, no limits we set, no cut of what you earn. You pay only for where you run it (a small server costs a few dollars a month, or use your own computer) and for a domain name if you want one.</p></details>
-          <details><summary>Do I need to be technical?</summary><p>You need to be comfortable following a step-by-step guide. If you can set up a website, you can set this up. A hosted version for people who would rather not is coming; leave your email above and we will tell you.</p></details>
+          <details><summary>Do I need to be technical?</summary><p>You should be comfortable following a step-by-step guide. If you can set up a website, you can set this up. A hosted version for people who would rather not is coming; leave your email above and we will tell you.</p></details>
           <details><summary>Will my emails reach people's inboxes?</summary><p>That depends on how you send, not on Freepost itself. The easiest route is to connect an email service you already use, and Freepost walks you through the few settings that keep your emails out of spam.</p></details>
           <details><summary>How is this different from Beehiiv or Substack?</summary><p>You run it yourself, so your list and your data stay with you, and nobody can change the price or close your account. Writing, sending, growing, automations and analytics are all here. What you will not find is a built-in ad network, newsletter recommendations or paid subscriptions.</p></details>
-          <details><summary>Can I take my subscribers with me?</summary><p>Always. Export your whole list as a spreadsheet with one click, or import one from another platform.</p></details>
-          <details><summary>Is it open source?</summary><p>Yes, under the AGPL license. You can read the code, change it and share it.</p></details>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="section cta">
-      <div class="wrap">
-        <h2 class="h2 big" data-reveal>Own your audience.</h2>
-        <p class="sub" data-reveal style="--d:1">No card, no trial, no countdown.</p>
-        <div class="cta-row center" data-reveal style="--d:2">
-          <a class="btn btn-solid" href="#start">Get started free</a>
-          <a class="btn btn-ghost" href="https://github.com/fetchloom/freepost">View on GitHub <span class="arrow" aria-hidden="true">→</span></a>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="footer">
