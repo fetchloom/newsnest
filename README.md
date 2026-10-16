@@ -160,6 +160,6 @@ Self-hosted variable fonts in `public/fonts/` (SIL OFL, ~95 KB): Bricolage Grote
 
 Newsnest is free software under the [GNU AGPL v3](LICENSE). Run it, change it and share it. If you run a modified version as a service for other people, you must share your changes under the same license.
 
-Made by Fetchloom and Alex.
+Made by Alex ([@unvibeapp](https://x.com/unvibeapp) on X).
 
 Fonts (self-hosted in `public/fonts`): Bricolage Grotesque, Instrument Sans and Martian Mono, all under the SIL Open Font License 1.1.

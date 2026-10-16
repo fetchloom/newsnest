@@ -63,6 +63,8 @@
 .footer { margin-top: clamp(80px, 11vw, 140px); border-top: 1px solid var(--line); padding: 36px 0 44px; }
 .footer-in { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
 .foot-note { color: var(--muted); font-size: 14px; margin-top: 12px; }
+.foot-note a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; transition: color .2s, text-decoration-color .2s; }
+.foot-note a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .foot-links { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
 .foot-links a { color: var(--muted); font-size: 14px; transition: color .2s; } .foot-links a:hover { color: var(--accent); }
 
