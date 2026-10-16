@@ -1,0 +1,6 @@
+data
+dist
+test
+docs
+.git
+*.md

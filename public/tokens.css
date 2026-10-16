@@ -1,0 +1,91 @@
+@font-face { font-family: "Bricolage"; src: url("/fonts/bricolage.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Instrument Sans"; src: url("/fonts/instrument-sans.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Martian Mono"; src: url("/fonts/martian-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+
+@property --angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+
+:root {
+  --bg: #fdfdfd;
+  --fg: #191919;
+  --muted: #6b6f72;
+  --line: rgba(0, 0, 0, .09);
+  --line-strong: rgba(0, 0, 0, .16);
+  --surface: #f6f6f6;
+  --raised: #fff;
+  --solid-bg: #191919;
+  --solid-fg: #fdfdfd;
+  --accent: #1663fe;
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
+  --ok: #30a46c;
+  --warn: #d98a00;
+  --bad: #e5484d;
+  --code-k: #8a4fd6;
+  --code-s: #1a7f5a;
+  --code-f: #c2410c;
+  --code-v: #1d4ed8;
+  --code-p: #6b6f72;
+  --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Instrument Sans", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --display: "Bricolage", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --r: 12px;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --accent: #4d8bff;
+  --warn: #f5a524;
+  --bad: #ff6369;
+  --bg: #09090a;
+  --fg: #f0f0f0;
+  --muted: #a1a4a5;
+  --line: rgba(255, 255, 255, .1);
+  --line-strong: rgba(255, 255, 255, .18);
+  --surface: #111113;
+  --raised: #141416;
+  --solid-bg: #f0f0f0;
+  --solid-fg: #09090a;
+  --code-k: #c4a1ff;
+  --code-s: #7ee0b0;
+  --code-f: #ffb27a;
+  --code-v: #8cb4ff;
+  --code-p: #8b8f92;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased;
+  transition: background-color .4s var(--ease), color .4s var(--ease);
+}
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, h4, p { margin: 0; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+.wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--solid-bg); color: var(--solid-fg); padding: 8px 12px; border-radius: 8px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+/* ---------- Buttons ---------- */
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 10px; font-size: 15px; font-weight: 500; border: 1px solid transparent; cursor: pointer; transition: transform .25s var(--ease), background-color .2s, border-color .2s, box-shadow .25s; }
+.btn-sm { height: 34px; padding: 0 13px; font-size: 14px; border-radius: 8px; }
+.btn-solid { background: var(--solid-bg); color: var(--solid-fg); }
+.btn-solid:hover { transform: translateY(-1px); box-shadow: 0 6px 18px -6px rgba(0, 0, 0, .35); }
+.btn-solid:active { transform: translateY(0); }
+.btn-ghost { border-color: var(--line-strong); }
+.btn-ghost:hover { background: var(--surface); }
+.arrow { display: inline-block; transition: transform .3s var(--ease); }
+.btn:hover .arrow { transform: translateX(3px); }
+
+
+/* ---------- Logo ---------- */
+.logo { display: inline-flex; align-items: center; gap: 9px; line-height: 0; }
+.logo img { display: block; height: auto; transition: transform .5s var(--ease); }
+.logo .lg-mark { width: 44px; }
+.logo .lg-word { width: 74px; }
+.logo .on-dark { display: none; }
+[data-theme="dark"] .logo .on-light { display: none; }
+[data-theme="dark"] .logo .on-dark { display: block; }
+.logo:hover .lg-mark { transform: translateX(-2px); }
