@@ -164,4 +164,4 @@ Newsnest is free software under the [GNU AGPL v3](LICENSE). Run it, change it an
 
 Made by Alex ([@unvibeapp](https://x.com/unvibeapp) on X).
 
-Fonts (self-hosted in `public/fonts`): Bricolage Grotesque, Instrument Sans and Martian Mono, all under the SIL Open Font License 1.1.
+Fonts (self-hosted in `public/fonts`): Bricolage Grotesque, Instrument Sans, Instrument Serif and Martian Mono, all under the SIL Open Font License 1.1.

@@ -1,5 +1,7 @@
 @font-face { font-family: "Bricolage"; src: url("/fonts/bricolage.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
 @font-face { font-family: "Instrument Sans"; src: url("/fonts/instrument-sans.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Instrument Serif"; src: url("/fonts/instrument-serif.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Instrument Serif"; src: url("/fonts/instrument-serif-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: "Martian Mono"; src: url("/fonts/martian-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
 
 :root {
@@ -19,6 +21,7 @@
   --bad: #e5484d;
   --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: "Instrument Sans", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
   --display: "Bricolage", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --ease: cubic-bezier(.22, 1, .36, 1);
   --r: 12px;

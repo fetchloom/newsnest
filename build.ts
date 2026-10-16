@@ -31,7 +31,7 @@ if (landing) {
   html = waitlist
     ? html.replace('action="/subscribe"', `action="${waitlist.replace(/"/g, "&quot;")}"`)
     : html.replace(/<form method="post" action="\/subscribe"[\s\S]*?<\/form>/, '<a class="btn btn-solid" href="https://github.com/fetchloom/newsnest">Watch the repo</a>');
-  html = html.replace(/<a href="\/app\/">Sign in<\/a>/, "").replace('<a class="mini" href="/app/"><span>→</span> Open the dashboard</a>', '<a class="mini" href="https://github.com/fetchloom/newsnest#try-it-in-a-minute"><span>↗</span> See the one-minute start</a>');
+  html = html.replace(/<a href="\/app\/">Sign in<\/a>/, "").replace('<a class="more" href="/app/">Open the dashboard <span class="arrow" aria-hidden="true">→</span></a>', '<a class="more" href="https://github.com/fetchloom/newsnest#try-it-in-a-minute">See the one-minute start <span class="arrow" aria-hidden="true">→</span></a>');
   await writeFile(file, html);
   await writeFile(join(dist, ".nojekyll"), "");
   if (process.env.NEWSNEST_LANDING_DOMAIN) await writeFile(join(dist, "CNAME"), `${process.env.NEWSNEST_LANDING_DOMAIN}\n`);

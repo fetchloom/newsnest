@@ -10,6 +10,7 @@
   <link rel="icon" href="/brand/favicon-light.png" type="image/png" media="(prefers-color-scheme: dark)">
   <link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/instrument-serif.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/styles.css">
   <script src="/js/theme-init.js"></script>
@@ -41,131 +42,55 @@
   </header>
 
   <main id="main">
-    <!-- Hero -->
     <section class="hero">
       <div class="wrap hero-in">
-        <a class="pill-badge" href="https://github.com/fetchloom/newsnest" data-reveal><i></i>Open source &middot; early release<span class="arrow" aria-hidden="true">→</span></a>
-        <h1 class="display" id="headline">What do you want to write?</h1>
-        <p class="lede" data-reveal style="--d:3">
-          Newsnest is a free, open-source newsletter platform. Write beautiful emails, grow your audience and keep every subscriber.
-        </p>
+        <p class="kicker" data-reveal>Open source &middot; early release</p>
+        <h1 class="display" id="headline">The newsletter platform you own.</h1>
+        <p class="lede" data-reveal style="--d:3">Write beautiful emails, grow your audience and keep every subscriber. Free, with nothing to pay and nobody taking a cut.</p>
+        <div class="cta-row" data-reveal style="--d:4">
+          <a class="btn btn-solid" href="#start">Get started free</a>
+          <a class="btn btn-ghost" href="#features">See what's inside <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </div>
 
-        <div class="composer" data-reveal style="--d:4">
-          <label class="sr" for="idea">What do you want to write?</label>
-          <textarea id="idea" rows="3" placeholder="A welcome email for new readers…" spellcheck="false"></textarea>
-          <div class="composer-bar">
-            <span class="composer-note">Free. You run it on your own computer or server.</span>
-            <a class="btn btn-solid btn-sm" href="#start">Get started <span class="arrow" aria-hidden="true">→</span></a>
+      <div class="wrap">
+        <div class="window" data-reveal style="--d:5" aria-hidden="true">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span class="window-title">Issue #42</span><span class="window-status"><b></b>Delivered to 12,480</span></div>
+          <div class="window-body">
+            <div class="paper">
+              <div class="paper-brand">The Weekly Loom</div>
+              <div class="paper-h">Why small newsletters win</div>
+              <div class="lines"><i></i><i></i><i class="short"></i></div>
+              <div class="lines"><i></i><i class="short"></i></div>
+              <span class="paper-cta">Read the full issue</span>
+            </div>
           </div>
         </div>
-
-        <div class="ideas" data-reveal style="--d:5" aria-label="Ideas">
-          <button type="button" data-prompt="A welcome email for new readers">Welcome email</button>
-          <button type="button" data-prompt="This week's digest, with three links and a note">Weekly digest</button>
-          <button type="button" data-prompt="Announce our launch to the whole list">Launch announcement</button>
-          <button type="button" data-prompt="A short survey asking readers what to cover next">Reader survey</button>
-          <button type="button" data-prompt="Reward readers who refer five friends">Referral rewards</button>
-        </div>
       </div>
     </section>
 
-    <!-- Works with -->
-    <section class="strip-wrap" data-reveal>
-      <p class="strip-label">Send through any SMTP service, such as</p>
-      <div class="strip"><span>Amazon SES</span><span>Postmark</span><span>Mailgun</span><span>Brevo</span><span>Resend</span><span>Your own server</span></div>
-    </section>
-
-    <!-- Features -->
     <section class="section" id="features">
       <div class="wrap">
-        <header class="section-head center">
+        <header class="section-head">
           <p class="eyebrow" data-reveal>Features</p>
-          <h2 class="h2" data-reveal style="--d:1">Everything you need to grow a newsletter.</h2>
-          <p class="sub" data-reveal style="--d:2">The tools paid platforms charge for, in one place, free.</p>
+          <h2 class="h2" data-reveal style="--d:1">Everything you need to <em>grow</em> a newsletter.</h2>
         </header>
-
-        <div class="bento" data-reveal>
-          <article class="feat wide">
-            <div class="viz v-write" aria-hidden="true">
-              <div class="vw-bar"><span class="dots"><i></i><i></i><i></i></span><span>Issue #42</span></div>
-              <div class="vw-body">
-                <div class="vw-side"><b>Blocks</b><span>Text</span><span>Image</span><span>Button</span><span>Poll</span></div>
-                <div class="vw-doc"><div class="vw-h">Hello, {{ first_name | there }}</div><div class="m-lines"><i></i><i></i><i class="short"></i></div><span class="m-cta">Read the full issue</span></div>
-              </div>
-            </div>
-            <h3>Write beautiful emails</h3>
-            <p>A drag-and-drop editor, merge tags and live preview. Send a test to yourself, then schedule it or split-test the subject line.</p>
-          </article>
-
-          <article class="feat">
-            <div class="viz v-designs" aria-hidden="true">
-              <div class="vd vd-plain"><i></i><div class="m-lines"><i></i><i class="short"></i></div></div>
-              <div class="vd vd-edit"><b>The Loom</b><em></em><div class="m-lines"><i></i><i class="short"></i></div></div>
-              <div class="vd vd-modern"><i></i><div class="m-lines"><i></i><i class="short"></i></div></div>
-              <div class="vd vd-bold"><i></i><div class="m-lines"><i></i><i class="short"></i></div></div>
-            </div>
-            <h3>Designs that look designed</h3>
-            <p>Three polished layouts, or bring your own HTML.</p>
-          </article>
-
-          <article class="feat">
-            <div class="viz v-read" aria-hidden="true">
-              <div class="vr-top"><b>48%</b><span>open rate</span></div>
-              <div class="m-chart mini"><i style="--n:1;--h:32%"></i><i style="--n:2;--h:44%"></i><i style="--n:3;--h:38%"></i><i style="--n:4;--h:56%"></i><i style="--n:5;--h:50%"></i><i style="--n:6;--h:68%"></i><i style="--n:7;--h:62%"></i><i style="--n:8;--h:80%"></i><i class="now" style="--n:9;--h:92%"></i></div>
-            </div>
-            <h3>Know your readers</h3>
-            <p>Opens, real clicks and groups that stay up to date.</p>
-          </article>
-
-          <article class="feat">
-            <div class="viz v-flow" aria-hidden="true">
-              <span class="vf on">Subscribes</span><i></i><span class="vf">Wait 2 days</span><i></i><span class="vf">Send welcome</span>
-            </div>
-            <h3>Put it on autopilot</h3>
-            <p>Welcome series and follow-ups that send themselves.</p>
-          </article>
-
-          <article class="feat">
-            <div class="viz v-ref" aria-hidden="true">
-              <div class="vref-link">newsnest.app/r/ada</div>
-              <div class="vref-bar"><i style="--w:60%"></i></div>
-              <div class="vref-row"><span>3 of 5 referrals</span><span class="chip">Sticker pack</span></div>
-            </div>
-            <h3>Grow with referrals</h3>
-            <p>Rewards, polls and sign-up forms for your site.</p>
-          </article>
-
-          <article class="feat">
-            <div class="viz v-site" aria-hidden="true">
-              <div class="vs-bar"><span class="dots"><i></i><i></i><i></i></span><em>yourname.com</em></div>
-              <div class="vs-body"><b>The Weekly Loom</b><div class="m-lines"><i></i><i class="short"></i></div><div class="m-lines"><i></i><i class="short"></i></div></div>
-            </div>
-            <h3>A website, included</h3>
-            <p>Archive, RSS and your own domain.</p>
-          </article>
-
-          <article class="feat wide">
-            <div class="viz v-code" aria-hidden="true">
-              <div class="vc-bar"><span class="dots"><i></i><i></i><i></i></span><span>send.sh</span><span class="vc-ok"><b></b>201 Created</span></div>
-<pre><span class="p">curl</span> -X POST https://news.example.com/emails \
-  -H <span class="s">"Authorization: Bearer nn_••••"</span> \
-  -d <span class="s">'{"from":"Ada &lt;ada@example.com&gt;",
-       "to":"hello@example.com",
-       "subject":"It is free. Really."}'</span></pre>
-            </div>
-            <h3>Also an email API</h3>
-            <p>Building an app? Send from your own code, with delivery tracking, signed webhooks and a suppression list built in.</p>
-          </article>
+        <div class="cells" data-reveal>
+          <article class="cell"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg><h3>Write beautiful emails</h3><p>A drag-and-drop editor, merge tags and a live preview. Schedule it, or split-test the subject line.</p></article>
+          <article class="cell"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M4 9h16M9 9v10"/></svg><h3>Three designs, or your own</h3><p>Editorial, Modern and Bold layouts in your colour. Or bring your own HTML.</p></article>
+          <article class="cell"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><h3>Know your readers</h3><p>Opens, real clicks, and groups that keep themselves up to date.</p></article>
+          <article class="cell"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 11a4 4 0 10-8 0 4 4 0 008 0z"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg><h3>Grow your list</h3><p>Referral rewards, polls, sign-up forms, and automations that welcome new readers.</p></article>
+          <article class="cell"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 100 18 9 9 0 000-18z"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg><h3>A website, included</h3><p>An archive, RSS and your own domain, with posts just for subscribers.</p></article>
+          <article class="cell"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg><h3>An email API, too</h3><p>Send from your own code, with delivery tracking and signed webhooks.</p></article>
         </div>
       </div>
     </section>
 
-    <!-- Compare -->
     <section class="section" id="compare">
       <div class="wrap">
-        <header class="section-head center">
+        <header class="section-head">
           <p class="eyebrow" data-reveal>Compare</p>
-          <h2 class="h2" data-reveal style="--d:1">What you save by owning it.</h2>
+          <h2 class="h2" data-reveal style="--d:1">What you save by <em>owning</em> it.</h2>
         </header>
         <div class="table-wrap" data-reveal>
           <table class="table">
@@ -180,28 +105,27 @@
             </tbody>
           </table>
         </div>
-        <p class="note center" data-reveal>Based on each company's public pricing page, October 2026.</p>
+        <p class="note" data-reveal>Based on each company's public pricing page, October 2026.</p>
       </div>
     </section>
 
-    <!-- Get started -->
     <section class="section" id="start">
       <div class="wrap">
-        <header class="section-head center">
+        <header class="section-head">
           <p class="eyebrow" data-reveal>Get started</p>
-          <h2 class="h2" data-reveal style="--d:1">Up and running in three steps.</h2>
+          <h2 class="h2" data-reveal style="--d:1">Up and running in <em>three</em> steps.</h2>
         </header>
         <ol class="steps">
-          <li class="step" data-reveal><span class="n">01</span><h3>Get Newsnest</h3><p>Download it from GitHub. It is free and open source.</p><a class="mini" href="https://github.com/fetchloom/newsnest"><span>↗</span> github.com/fetchloom/newsnest</a></li>
-          <li class="step" data-reveal style="--d:1"><span class="n">02</span><h3>Set it up</h3><p>Try it on your own computer, or put it on a small server to go live. The guide walks you through it.</p><a class="mini" href="https://github.com/fetchloom/newsnest/blob/main/docs/self-hosting.md"><span>↗</span> Read the setup guide</a></li>
-          <li class="step" data-reveal style="--d:2"><span class="n">03</span><h3>Send your first issue</h3><p>Open your dashboard, write something, and press send. That is it.</p><a class="mini" href="/app/"><span>→</span> Open the dashboard</a></li>
+          <li class="step" data-reveal><span class="n">01</span><h3>Get Newsnest</h3><p>Download it from GitHub. It is free and open source.</p><a class="more" href="https://github.com/fetchloom/newsnest">github.com/fetchloom/newsnest <span class="arrow" aria-hidden="true">→</span></a></li>
+          <li class="step" data-reveal style="--d:1"><span class="n">02</span><h3>Set it up</h3><p>Try it on your own computer, or put it on a small server to go live.</p><a class="more" href="https://github.com/fetchloom/newsnest/blob/main/docs/self-hosting.md">Read the setup guide <span class="arrow" aria-hidden="true">→</span></a></li>
+          <li class="step" data-reveal style="--d:2"><span class="n">03</span><h3>Send your first issue</h3><p>Open your dashboard, write something, and press send.</p><a class="more" href="/app/">Open the dashboard <span class="arrow" aria-hidden="true">→</span></a></li>
         </ol>
-        <p class="note center" data-reveal>Free means we charge nothing. You still need somewhere to run Newsnest and a way to send email, such as a mail service you already use. The guide explains both.</p>
+        <p class="note" data-reveal>Free means we charge nothing. You still need somewhere to run Newsnest and a way to send email, such as a mail service you already use. The guide explains both.</p>
 
         <div class="wait" data-reveal>
           <div>
             <h3>Rather not run it yourself?</h3>
-            <p>A hosted version is on the way. Leave your email and we will tell you when it is ready.</p>
+            <p>A hosted version is on the way. Leave your email and we will tell you.</p>
           </div>
           <form method="post" action="/subscribe" novalidate>
             <input type="email" name="email" placeholder="you@example.com" aria-label="Email address" autocomplete="email">
@@ -212,17 +136,16 @@
       </div>
     </section>
 
-    <!-- FAQ -->
     <section class="section" id="faq">
       <div class="wrap faq-wrap">
-        <header class="section-head center">
+        <header class="section-head">
           <p class="eyebrow" data-reveal>Questions</p>
-          <h2 class="h2" data-reveal style="--d:1">Straight answers.</h2>
+          <h2 class="h2" data-reveal style="--d:1">Straight <em>answers</em>.</h2>
         </header>
         <div class="faq" data-reveal>
           <details><summary>Is it really free?</summary><p>Yes. No plans, no limits we set, no cut of what you earn. You pay only for where you run it (a small server costs a few dollars a month, or use your own computer) and for a domain name if you want one.</p></details>
-          <details><summary>Do I need to be technical?</summary><p>You should be comfortable following a step-by-step guide. If you can set up a website, you can set this up. A hosted version for people who would rather not is coming; leave your email above and we will tell you.</p></details>
-          <details><summary>Will my emails reach people's inboxes?</summary><p>That depends on how you send, not on Newsnest itself. The easiest route is to connect an email service you already use, and Newsnest walks you through the few settings that keep your emails out of spam.</p></details>
+          <details><summary>Do I need to be technical?</summary><p>You should be comfortable following a step-by-step guide. If you can set up a website, you can set this up. A hosted version for people who would rather not is coming.</p></details>
+          <details><summary>Will my emails reach people's inboxes?</summary><p>That depends on how you send, not on Newsnest itself. The easiest route is to connect an email service you already use, such as Amazon SES, Postmark or Mailgun, and Newsnest walks you through the few settings that keep your emails out of spam.</p></details>
           <details><summary>How is this different from Beehiiv or Substack?</summary><p>You run it yourself, so your list and your data stay with you, and nobody can change the price or close your account. Writing, sending, growing, automations and analytics are all here. What you will not find is a built-in ad network, newsletter recommendations or paid subscriptions.</p></details>
         </div>
       </div>
@@ -236,10 +159,10 @@
           <img class="lg-mark on-light" src="/brand/mark.png" alt="" width="475" height="225"><img class="lg-mark on-dark" src="/brand/mark-light.png" alt="" width="475" height="225">
           <span class="lg-text">newsnest</span>
         </a>
-        <p class="foot-note">Email and newsletters, free. Made by Alex (<a href="https://x.com/unvibeapp" rel="noopener">@unvibeapp</a> on X).</p>
+        <p class="foot-note">Made by Alex (<a href="https://x.com/unvibeapp" rel="noopener">@unvibeapp</a> on X).</p>
       </div>
       <nav class="foot-links" aria-label="Footer">
-        <a href="#features">Features</a><a href="#compare">Compare</a><a href="#start">Get started</a><a href="#faq">FAQ</a><a href="https://github.com/fetchloom/newsnest">GitHub</a><a href="https://github.com/fetchloom/newsnest/blob/main/LICENSE">License</a><a href="/app/">Sign in</a>
+        <a href="#features">Features</a><a href="#compare">Compare</a><a href="#faq">FAQ</a><a href="https://github.com/fetchloom/newsnest">GitHub</a><a href="https://github.com/fetchloom/newsnest/blob/main/LICENSE">License</a><a href="/app/">Sign in</a>
       </nav>
     </div>
   </footer>
