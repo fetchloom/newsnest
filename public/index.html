@@ -16,7 +16,6 @@
 </head>
 <body class="landing">
   <a class="skip" href="#main">Skip to content</a>
-  <div class="bg-glow" aria-hidden="true"></div>
 
   <header class="nav" id="nav">
     <div class="wrap nav-in">
@@ -44,39 +43,28 @@
   <main id="main">
     <!-- Hero -->
     <section class="hero">
-      <div class="hero-grid" aria-hidden="true"></div>
       <div class="wrap hero-in">
         <a class="pill-badge" href="https://github.com/fetchloom/newsnest" data-reveal><i></i>Open source &middot; early release<span class="arrow" aria-hidden="true">→</span></a>
-        <h1 class="display" id="headline">The newsletter platform you own.</h1>
+        <h1 class="display" id="headline">What do you want to write?</h1>
         <p class="lede" data-reveal style="--d:3">
-          Write beautiful emails, grow your audience and keep every subscriber. Free, open source and yours to run. No monthly fee, no cut of your earnings.
+          Newsnest is a free, open-source newsletter platform. Write beautiful emails, grow your audience and keep every subscriber.
         </p>
-        <div class="cta-row center" data-reveal style="--d:4">
-          <a class="btn btn-solid" href="#start">Get started free</a>
-          <a class="btn btn-ghost" href="#features">See what's inside <span class="arrow" aria-hidden="true">→</span></a>
-        </div>
-      </div>
 
-      <div class="wrap">
-        <div class="art" id="art" data-reveal style="--d:5" aria-hidden="true">
-          <div class="art-window">
-            <div class="art-bar"><span class="dots"><i></i><i></i><i></i></span><span class="art-title">Issue #42</span><span class="m-save">Saved</span><span class="m-btn">Send…</span></div>
-            <div class="art-paper">
-              <div class="paper-brand"><i></i>The Weekly Loom</div>
-              <div class="paper-h">Why small newsletters win</div>
-              <div class="m-lines"><i></i><i></i><i class="short"></i></div>
-              <div class="paper-img"></div>
-              <div class="m-lines"><i></i><i class="short"></i></div>
-              <span class="m-cta">Read the full issue</span>
-            </div>
+        <div class="composer" data-reveal style="--d:4">
+          <label class="sr" for="idea">What do you want to write?</label>
+          <textarea id="idea" rows="3" placeholder="A welcome email for new readers…" spellcheck="false"></textarea>
+          <div class="composer-bar">
+            <span class="composer-note">Free. You run it on your own computer or server.</span>
+            <a class="btn btn-solid btn-sm" href="#start">Get started <span class="arrow" aria-hidden="true">→</span></a>
           </div>
-          <div class="art-card art-growth">
-            <div class="art-label">Subscribers</div>
-            <div class="art-num"><span data-count data-group data-from="0" data-to="12480">12,480</span></div>
-            <div class="art-up">+213 this week</div>
-            <div class="m-chart tiny"><i style="--n:1;--h:30%"></i><i style="--n:2;--h:38%"></i><i style="--n:3;--h:34%"></i><i style="--n:4;--h:52%"></i><i style="--n:5;--h:46%"></i><i style="--n:6;--h:64%"></i><i style="--n:7;--h:60%"></i><i style="--n:8;--h:78%"></i><i class="now" style="--n:9;--h:96%"></i></div>
-          </div>
-          <div class="art-card art-toast m-toasts" data-toasts><span>New subscriber: ada@example.com</span></div>
+        </div>
+
+        <div class="ideas" data-reveal style="--d:5" aria-label="Ideas">
+          <button type="button" data-prompt="A welcome email for new readers">Welcome email</button>
+          <button type="button" data-prompt="This week's digest, with three links and a note">Weekly digest</button>
+          <button type="button" data-prompt="Announce our launch to the whole list">Launch announcement</button>
+          <button type="button" data-prompt="A short survey asking readers what to cover next">Reader survey</button>
+          <button type="button" data-prompt="Reward readers who refer five friends">Referral rewards</button>
         </div>
       </div>
     </section>
