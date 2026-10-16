@@ -13,3 +13,24 @@ jobs:
           node-version: 24
       - run: node --test test/*.test.ts
       - run: node build.ts
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t newsnest .
+      - name: The compose file is valid
+        run: cp .env.example .env && docker compose config -q
+      - name: Start it and use it
+        run: |
+          docker run -d --name nn -p 8700:8700 -e NEWSNEST_ADMIN_PASSWORD='ci-test-password-123' -v nn-data:/data newsnest
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8700/health && break; sleep 1; done
+          curl -fs http://127.0.0.1:8700/health
+          curl -fs -o /dev/null http://127.0.0.1:8700/
+          curl -fs -o /dev/null http://127.0.0.1:8700/app/
+          curl -fs -c jar -H 'X-Newsnest: 1' -H 'content-type: application/json' -d '{"password":"ci-test-password-123"}' http://127.0.0.1:8700/auth/login
+          curl -fs -b jar -H 'X-Newsnest: 1' http://127.0.0.1:8700/stats
+          docker exec nn ls -la /data
+      - name: Show the logs if it failed
+        if: failure()
+        run: docker logs nn

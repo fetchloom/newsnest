@@ -4,6 +4,8 @@ COPY server.ts package.json ./
 COPY src ./src
 COPY public ./public
 ENV NEWSNEST_HOST=0.0.0.0 NEWSNEST_DATA=/data
+# The app runs as the unprivileged "node" user, so it must own the folder its database lives in.
+RUN mkdir -p /data && chown node:node /data
 VOLUME /data
 EXPOSE 8700
 USER node
