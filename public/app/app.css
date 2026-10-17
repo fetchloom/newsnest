@@ -22,15 +22,15 @@
 .view { max-width: 980px; animation: view-in .45s var(--ease) both; }
 @keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
-.page-head h1 { font: 700 clamp(26px, 3.4vw, 34px)/1.1 var(--display); letter-spacing: -.035em; }
+.page-head h1 { font: 400 clamp(36px, 4.4vw, 50px)/1.04 var(--serif); letter-spacing: -.02em; }
 .page-head p { color: var(--muted); font-size: 15px; margin-top: 6px; max-width: 60ch; }
 .crumb { font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: inline-block; }
 .crumb:hover { color: var(--accent); }
 
 /* ---------- Surfaces ---------- */
-.card { border: 1px solid var(--line); border-radius: 14px; background: var(--raised); }
+.card { border: 1px solid var(--line); border-radius: 16px; background: var(--raised); }
 .card-pad { padding: 20px 22px; }
-.card h2 { font: 650 17px/1.2 var(--display); letter-spacing: -.02em; }
+.card h2 { font: 400 23px/1.2 var(--serif); letter-spacing: -.01em; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--line); }
 .stack { display: grid; gap: 20px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -41,7 +41,7 @@
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .stat-card { padding: 18px 20px; border-radius: 14px; background: var(--surface); }
-.stat-card .n { font: 700 30px/1 var(--display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.stat-card .n { font: 600 32px/1 var(--display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .stat-card .l { color: var(--muted); font-size: 13px; margin-top: 8px; }
 
 .chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding: 8px 22px 0; }
@@ -79,7 +79,7 @@
 .t .clip { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .t .num { text-align: right; font-variant-numeric: tabular-nums; }
 .empty { padding: 44px 22px; text-align: center; color: var(--muted); font-size: 14.5px; }
-.empty b { display: block; color: var(--fg); font: 650 17px/1.2 var(--display); margin-bottom: 6px; }
+.empty b { display: block; color: var(--fg); font: 400 24px/1.2 var(--serif); margin-bottom: 8px; }
 
 /* ---------- Badges ---------- */
 .badge { display: inline-flex; align-items: center; gap: 7px; height: 24px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
@@ -130,7 +130,7 @@ code.v { font: 12px/1.5 var(--mono); word-break: break-all; }
 /* ---------- Auth ---------- */
 .auth { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 .auth-card { width: min(400px, 100%); display: grid; gap: 22px; animation: view-in .5s var(--ease) both; }
-.auth-card h1 { font: 700 30px/1.1 var(--display); letter-spacing: -.035em; }
+.auth-card h1 { font: 400 42px/1.05 var(--serif); letter-spacing: -.02em; }
 .auth-card p { color: var(--muted); font-size: 15px; margin-top: 8px; }
 
 /* ---------- Toast ---------- */
@@ -191,7 +191,7 @@ code.v { font: 12px/1.5 var(--mono); word-break: break-all; }
 .toolbar .input, .toolbar .select { width: auto; min-width: 150px; height: 36px; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .right { margin-left: auto; }
-.btn-sm { height: 32px; padding: 0 12px; font-size: 13.5px; border-radius: 8px; }
+.btn-sm { height: 32px; padding: 0 14px; font-size: 13.5px; }
 .tag-input { display: flex; gap: 8px; }
 .kv { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; }
 .stat-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -362,3 +362,15 @@ kbd { font: 500 10.5px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--
 .html-area { min-height: 520px; font-size: 12.5px; line-height: 1.6; tab-size: 2; white-space: pre; overflow: auto; }
 .warn-text { color: var(--warn); }
 @media (max-width: 860px) { .designs.wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Same shapes and type as the landing page ---------- */
+.app .btn, .auth .btn, .modal .btn { border-radius: 999px; }
+.app .btn-solid:hover, .auth .btn-solid:hover { box-shadow: none; transform: none; opacity: .88; }
+.page-head h1 em, .welcome h2 em { font-style: italic; }
+.page-head p { font-size: 16px; }
+.modal .card-head h2 { font-size: 22px; }
+.welcome { display: grid; gap: 14px; justify-items: start; padding: clamp(28px, 5vw, 48px); border: 1px solid var(--line); border-radius: 20px; background: var(--raised); }
+.welcome h2 { font: 400 clamp(34px, 4.4vw, 48px)/1.04 var(--serif); letter-spacing: -.02em; }
+.welcome p.muted { max-width: 54ch; font-size: 16px; }
+.welcome .row { margin-top: 6px; }
+.t th { letter-spacing: 0; }

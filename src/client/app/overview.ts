@@ -18,12 +18,23 @@ export async function overview(): Promise<HTMLElement> {
     ["Create an API key for the email API", "#/keys", s.api_keys > 0],
   ];
   const finished = steps.every(([, , done]) => done);
+  // A brand-new install has nothing to chart yet. Show a welcome instead of a wall of zeros.
+  const fresh = audience.totals.active === 0 && sentPosts.data.length === 0 && recent.data.length === 0;
 
   const modeNote = { outbox: `Outbox mode: emails are saved as files in ${settings.data_dir}/outbox and not sent anywhere. Switch to relay or direct mode to reach real inboxes.` };
 
   return h("div", { class: "view stack" },
-    pageHead("Overview", "What your instance has been doing.", h("a", { class: "btn btn-solid", href: "#/send" }, "Send an email")),
+    pageHead("Overview", fresh ? "Everything starts here." : "What your newsletter has been doing.", h("a", { class: "btn btn-solid", href: "#/send" }, "Send an email")),
     settings.mode === "outbox" && h("div", { class: "notice warn" }, modeNote.outbox),
+
+    fresh && h("div", { class: "welcome" },
+      h("p", { class: "eyebrow" }, "Welcome"),
+      h("h2", {}, "Let's send your first ", h("em", {}, "issue"), "."),
+      h("p", { class: "muted" }, "Write a post, add the people who should read it, and press send. Want to look around first? Sample data fills every page, and one click removes it."),
+      h("div", { class: "row" },
+        h("a", { class: "btn btn-solid", href: "#/posts/new" }, "Write a post"),
+        h("a", { class: "btn btn-ghost", href: "#/subscribers" }, "Add subscribers"),
+        h("a", { class: "btn btn-ghost", href: "#/settings" }, "Look around with sample data"))),
 
     !finished && h("div", { class: "card" },
       h("div", { class: "card-head" }, h("h2", {}, "Get set up")),
@@ -31,14 +42,14 @@ export async function overview(): Promise<HTMLElement> {
         h("li", { class: done ? "done" : "" }, h("span", { class: "tick" }), h("a", { href }, label)))),
     ),
 
-    h("div", { class: "stats-grid" },
+    !fresh && h("div", { class: "stats-grid" },
       stat(audience.totals.active, "Active subscribers"),
       stat(audience.growth.reduce((sum: number, g: { net: number }) => sum + g.net, 0), "Net new in 14 days"),
       stat(n("sent", "delivered"), "Emails accepted"),
       stat(n("bounced", "failed"), "Bounced or failed"),
     ),
 
-    h("div", { class: "card" },
+    !fresh && h("div", { class: "card" },
       h("div", { class: "card-head" }, h("h2", {}, "Last 14 days"), h("span", { class: "muted small" }, `${s.emails_today} today`)),
       h("div", { class: "chart", role: "img", "aria-label": "Emails per day for the last 14 days" },
         s.series.map((x: { date: string; count: number }, i: number) =>
@@ -46,7 +57,7 @@ export async function overview(): Promise<HTMLElement> {
       h("div", { class: "chart-axis" }, h("span", {}, s.series[0].date.slice(5)), h("span", {}, s.series[s.series.length - 1].date.slice(5))),
     ),
 
-    h("div", { class: "card" },
+    !fresh && h("div", { class: "card" },
       h("div", { class: "card-head" }, h("h2", {}, "Recent emails"), h("a", { class: "muted small", href: "#/emails" }, "View all")),
       recent.data.length
         ? h("div", { class: "table-scroll" }, h("table", { class: "t" }, h("tbody", {}, recent.data.map((e: any) =>
