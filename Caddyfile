@@ -1,0 +1,6 @@
+# Used by docker-compose.yml. The domain comes from NEWSNEST_DOMAIN in .env.
+# Caddy replaces any X-Forwarded-For a visitor sends with their real address, which is what NEWSNEST_TRUST_PROXY relies on.
+{$NEWSNEST_DOMAIN} {
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy newsnest:8700
+}

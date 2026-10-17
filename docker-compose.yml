@@ -2,6 +2,9 @@
 # 1. Point your domain's DNS A record at this server.
 # 2. Copy .env.example to .env and fill it in.
 # 3. docker compose up -d
+#
+# Images use moving tags. To pin one exactly, look up its digest (docker buildx imagetools inspect caddy:2-alpine)
+# and write caddy:2-alpine@sha256:<digest>, then update it on purpose when you want a new version.
 services:
   newsnest:
     build: .
@@ -9,14 +12,21 @@ services:
     env_file: .env
     environment:
       NEWSNEST_TRUST_PROXY: "1"
+    # It only ever writes to /data.
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
     volumes:
       - newsnest-data:/data
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     ports: ["80:80", "443:443"]
-    command: caddy reverse-proxy --from ${NEWSNEST_DOMAIN} --to newsnest:8700
+    environment:
+      NEWSNEST_DOMAIN: ${NEWSNEST_DOMAIN}
+    security_opt: ["no-new-privileges:true"]
     volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     depends_on: [newsnest]
 volumes:

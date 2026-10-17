@@ -14,7 +14,7 @@ It is the pieces of [Beehiiv](https://www.beehiiv.com) (writing, growing, analyt
 
 ```sh
 git clone https://github.com/fetchloom/newsnest && cd newsnest
-node server.ts          # then open http://127.0.0.1:8700/app/ and choose a password
+node server.ts          # then open http://127.0.0.1:8700/app/, enter the setup code printed here and choose a password
 ```
 
 Out of the box it saves emails as files instead of sending them, so you can explore safely. In **Settings**, **Load sample data** fills it with example subscribers, issues and statistics (and removes them again with one click). To send real email, connect an SMTP service or send directly from a server (see below).
@@ -26,8 +26,8 @@ node build.ts                # static landing page and dashboard files into dist
 
 ## Dashboard
 
-Open http://127.0.0.1:8700/app/. The first visit asks you to choose a password (only from the machine running Newsnest;
-on a server, set `NEWSNEST_ADMIN_PASSWORD` instead). From there you can send email, read the event history of every
+Open http://127.0.0.1:8700/app/. The first visit asks you to choose a password and to enter the setup code Newsnest prints in
+the terminal where you started it (only from the machine running Newsnest; on a server, set `NEWSNEST_ADMIN_PASSWORD`, at least 10 characters, instead). From there you can send email, read the event history of every
 message, add and verify domains, create API keys and webhooks, and manage suppressions. Change the password under
 Settings. Forgot it: start the server once with `NEWSNEST_ADMIN_PASSWORD` set to a new one, sign in, and unset it
 (while it is set, every start resets the password to it).
@@ -118,16 +118,18 @@ Step-by-step guide, with Docker and HTTPS: `docs/self-hosting.md`. The short ver
 1. Set the public address people can reach: `NEWSNEST_PUBLIC_URL=https://news.example.com` (or Settings in the dashboard). Confirm, unsubscribe and tracking links use it. On localhost they only work on your computer.
 2. Choose how mail leaves: `NEWSNEST_MODE=relay` with `NEWSNEST_RELAY_URL`, or `direct` from a server with a clean IP and port 25.
 3. Add and verify your sending domain (Domains), then set the From and postal address (Settings).
-4. Put HTTPS in front (Caddy or nginx), pass `X-Forwarded-Proto`, and set `NEWSNEST_TRUST_PROXY=1` so rate limits see real client addresses.
+4. Put HTTPS in front (Caddy or nginx), have it overwrite `X-Forwarded-For` and pass `X-Forwarded-Proto` (a safe nginx recipe is in the guide), and set `NEWSNEST_TRUST_PROXY=1` so rate limits see real client addresses. Never set it without a proxy.
 5. For your own site domain, point its DNS at the server and enter it under Website.
 
-More settings: `NEWSNEST_PUBLIC_URL`, `NEWSNEST_SEND_RATE` (newsletter messages per second, default 10; API mail is not paced), `NEWSNEST_TRUST_PROXY`.
+More settings: `NEWSNEST_PUBLIC_URL`, `NEWSNEST_SEND_RATE` (newsletter messages per second, default 10; API mail is not paced), `NEWSNEST_TRUST_PROXY`, `NEWSNEST_PUBLIC_MAIL_PER_HOUR` (most confirmation and sign-in emails that visitors of the public pages can trigger per hour in total, default 500). Numbers must be positive; a bad value stops Newsnest from starting.
 
 ### Things to know
 
 - **Open tracking is approximate.** Apple Mail Privacy Protection and some image proxies load the tracking pixel for people who never opened the email. Clicks from security scanners are filtered (shown as "verified clicks"), but not perfectly.
 - **No geography or read time.** Newsnest stores no IP addresses and has no location database.
 - **One publication per install.** Run a second instance for a second newsletter.
+- **HTML blocks, custom HTML emails and `full` API keys are fully trusted.** An HTML block is published as you wrote it (the website only drops obvious `<script>` tags and `on…=` attributes, which is a convenience, not a sandbox), and a `full` key can do everything the dashboard can. Only give them to people you would give the dashboard to. Use `sending` keys for apps that just send mail: they can only see and manage the API mail they sent themselves.
+- **Keep double opt-in on.** With single opt-in anyone can sign up someone else's address, and with referral rewards that invites fake sign-ups. A public sign-up never brings an unsubscribed address back, and confirmation and sign-in links only act when the button on the page is pressed, so mail scanners can't use them.
 - **Automation webhook steps and API webhooks can call any http(s) address**, including your internal network. That is fine for a single-owner install; don't give untrusted people dashboard access.
 - **Subscribers are active, pending, unsubscribed or bounced.** Hard bounces move a subscriber to bounced and add them to the suppression list.
 

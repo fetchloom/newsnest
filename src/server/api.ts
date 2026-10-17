@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { COOKIE, MIN_PASSWORD, checkPassword, createSession, destroySession, hasPassword, loginThrottle, parseCookies, sessionCookie, sessionValid, setPassword } from "./auth.ts";
+import { COOKIE, MIN_PASSWORD, attemptGate, checkPassword, createSession, destroySession, hasPassword, loginThrottle, parseCookies, sessionCookie, sessionValid, setPassword, setupCodeMatches } from "./auth.ts";
+import { clientIp, isHttps } from "./client.ts";
 import type { Config } from "./config.ts";
 import type { DB } from "./db.ts";
 import { createDomain, deleteDomain, getDomain, listDomains, verifyDomain } from "./domains.ts";
@@ -22,11 +23,11 @@ const ROUTES: Route[] = [
   ...newsletterRoutes,
   route("POST", "/emails", (c) => { const r = sendEmail(c.db, c.cfg, c.key, c.body); c.kick(); return ok(r, 201); }, { sending: true, idempotent: true }),
   route("POST", "/emails/batch", (c) => { const r = sendBatch(c.db, c.cfg, c.key, c.body); c.kick(); return ok(r, 201); }, { sending: true, idempotent: true }),
-  route("GET", "/emails", (c) => ok(listEmails(c.db, c.query)), { sending: true }),
-  route("GET", "/emails/:id", (c) => ok(getEmail(c.db, c.params[0], c.cfg)), { sending: true }),
-  route("GET", "/emails/:id/events", (c) => ok(listEmailEvents(c.db, c.params[0])), { sending: true }),
-  route("PATCH", "/emails/:id", (c) => { const r = rescheduleEmail(c.db, c.params[0], obj(c.body)); c.kick(); return ok(r); }, { sending: true }),
-  route("POST", "/emails/:id/cancel", (c) => ok(cancelEmail(c.db, c.params[0])), { sending: true }),
+  route("GET", "/emails", (c) => ok(listEmails(c.db, c.query, c.key)), { sending: true }),
+  route("GET", "/emails/:id", (c) => ok(getEmail(c.db, c.params[0], c.cfg, c.key)), { sending: true }),
+  route("GET", "/emails/:id/events", (c) => ok(listEmailEvents(c.db, c.params[0], c.key)), { sending: true }),
+  route("PATCH", "/emails/:id", (c) => { const r = rescheduleEmail(c.db, c.params[0], obj(c.body), c.key); c.kick(); return ok(r); }, { sending: true }),
+  route("POST", "/emails/:id/cancel", (c) => ok(cancelEmail(c.db, c.params[0], c.key)), { sending: true }),
 
   route("POST", "/domains", (c) => ok(createDomain(c.db, obj(c.body).name), 201)),
   route("GET", "/domains", (c) => ok({ object: "list", data: listDomains(c.db, c.cfg) })),
@@ -81,12 +82,12 @@ function limiter(perSec: number) {
   };
 }
 
-async function readBody(req: IncomingMessage): Promise<string> {
+async function readBody(req: IncomingMessage, max = MAX_BODY): Promise<string> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req as AsyncIterable<Buffer>) {
     size += chunk.length;
-    if (size > MAX_BODY) throw new ApiError(413, "payload_too_large", "Request body is too large (max 5 MB)");
+    if (size > max) throw new ApiError(413, "payload_too_large", `Request body is too large (max ${max === MAX_BODY ? "5 MB" : `${max / 1024} KB`})`);
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString("utf8");
@@ -104,17 +105,22 @@ function reply(res: ServerResponse, status: number, body: unknown, headers: Reco
 }
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+const PROXY_HEADERS = ["x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "x-real-ip", "forwarded"];
+const MAX_AUTH_BODY = 4 * 1024;
+const TOO_MANY = "Too many failed attempts. Try again in 15 minutes.";
 
-export function createApi(db: DB, cfg: Config, kick: () => void) {
+export function createApi(db: DB, cfg: Config, kick: () => void, setupCode: string | null = null) {
   const allow = limiter(cfg.rateLimitPerSec);
   const throttle = loginThrottle();
+  const attempt = attemptGate();
 
   /** /auth/*: password setup, sign-in and sign-out for the dashboard. */
   async function handleAuth(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
     const method = req.method ?? "GET";
     const token = parseCookies(req.headers.cookie)[COOKIE];
-    const secure = req.headers["x-forwarded-proto"] === "https";
-    const ip = req.socket.remoteAddress ?? "unknown";
+    const secure = isHttps(req, db, cfg);
+    const ip = clientIp(req, cfg);
 
     if (pathname === "/auth/status" && method === "GET") {
       return reply(res, 200, { setup_required: !hasPassword(db), authenticated: sessionValid(db, token) });
@@ -127,45 +133,54 @@ export function createApi(db: DB, cfg: Config, kick: () => void) {
       return reply(res, 200, { ok: true }, { "set-cookie": sessionCookie("", secure, true) });
     }
 
+    // Who is guessing is decided before the body is read or anything is hashed. A signed-in owner changing the password is
+    // counted per session, so strangers' failures can never lock them out.
+    let who = `ip:${ip}`;
+    if (pathname === "/auth/setup") {
+      if (hasPassword(db)) throw new ApiError(409, "already_setup", "A password is already set");
+      // First-run setup is only open to someone on the machine itself, never through a proxy.
+      const local = LOOPBACK.has(req.socket.remoteAddress ?? "") && LOOPBACK_HOST.test(String(req.headers.host ?? ""))
+        && !PROXY_HEADERS.some((h) => req.headers[h] !== undefined) && !cfg.trustProxy && !cfg.publicUrl;
+      if (!local) throw new ApiError(403, "setup_local_only", "Create the password from the machine running Newsnest, or set NEWSNEST_ADMIN_PASSWORD");
+    } else if (pathname === "/auth/password") {
+      if (!sessionValid(db, token)) throw new ApiError(401, "unauthorized", "Sign in first");
+      who = `session:${sha256(token!)}`;
+    } else if (pathname !== "/auth/login") throw notFound("Route");
+    if (throttle.blocked(who)) throw new ApiError(429, "too_many_attempts", TOO_MANY);
+
     let parsed: unknown = null;
-    try { parsed = JSON.parse((await readBody(req)) || "null"); } catch { throw validation("Request body is not valid JSON"); }
+    try { parsed = JSON.parse((await readBody(req, MAX_AUTH_BODY)) || "null"); } catch (e) { if (e instanceof ApiError) throw e; throw validation("Request body is not valid JSON"); }
     const body = obj(parsed);
     const password = typeof body.password === "string" ? body.password : "";
 
     if (pathname === "/auth/setup") {
-      if (hasPassword(db)) throw new ApiError(409, "already_setup", "A password is already set");
-      // First-run setup is only open to someone on the machine itself, never through a proxy.
-      if (!LOOPBACK.has(ip) || req.headers["x-forwarded-for"]) {
-        throw new ApiError(403, "setup_local_only", "Create the password from the machine running Newsnest, or set NEWSNEST_ADMIN_PASSWORD");
+      const code = typeof body.setup_code === "string" ? body.setup_code : "";
+      if (!setupCode || !(await attempt(() => setupCodeMatches(setupCode, code)))) {
+        throttle.fail(who);
+        throw new ApiError(403, "invalid_setup_code", "That setup code is wrong. It is printed in the terminal where you started Newsnest.");
       }
       if (password.length < MIN_PASSWORD) throw validation(`Use at least ${MIN_PASSWORD} characters`);
       setPassword(db, password);
       return reply(res, 201, { ok: true }, { "set-cookie": sessionCookie(createSession(db), secure) });
     }
     if (pathname === "/auth/password") {
-      if (!sessionValid(db, token)) throw new ApiError(401, "unauthorized", "Sign in first");
-      if (throttle.blocked(ip)) throw new ApiError(429, "too_many_attempts", "Too many failed attempts. Try again in 15 minutes.");
-      if (!checkPassword(db, password)) { throttle.fail(ip); throw new ApiError(401, "invalid_credentials", "Your current password is wrong"); }
+      if (!(await attempt(() => checkPassword(db, password)))) { throttle.fail(who); throw new ApiError(401, "invalid_credentials", "Your current password is wrong"); }
       const next = typeof body.new_password === "string" ? body.new_password : "";
       if (next.length < MIN_PASSWORD) throw validation(`Use at least ${MIN_PASSWORD} characters`);
-      throttle.clear(ip);
+      throttle.clear(who);
       setPassword(db, next); // signs every session out, including this one, so start a fresh one
       return reply(res, 200, { ok: true }, { "set-cookie": sessionCookie(createSession(db), secure) });
     }
-    if (pathname === "/auth/login") {
-      if (throttle.blocked(ip)) throw new ApiError(429, "too_many_attempts", "Too many failed attempts. Try again in 15 minutes.");
-      if (!hasPassword(db) || !checkPassword(db, password)) {
-        throttle.fail(ip);
-        throw new ApiError(401, "invalid_credentials", "Wrong password");
-      }
-      throttle.clear(ip);
-      return reply(res, 200, { ok: true }, { "set-cookie": sessionCookie(createSession(db), secure) });
+    // /auth/login
+    if (!hasPassword(db) || !(await attempt(() => checkPassword(db, password)))) {
+      throttle.fail(who);
+      throw new ApiError(401, "invalid_credentials", "Wrong password");
     }
-    throw notFound("Route");
+    throttle.clear(who);
+    return reply(res, 200, { ok: true }, { "set-cookie": sessionCookie(createSession(db), secure) });
   }
 
-  return async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const url = new URL(req.url ?? "/", "http://localhost");
+  return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
     const method = req.method ?? "GET";
     try {
       if (url.pathname === "/health" && method === "GET") return reply(res, 200, { ok: true, mode: cfg.mode });
@@ -223,6 +238,7 @@ export function createApi(db: DB, cfg: Config, kick: () => void) {
       reply(res, out.status, out.body, out.headers, out.raw);
     } catch (e) {
       if (e instanceof ApiError) return reply(res, e.status, { statusCode: e.status, name: e.code, message: e.message }, e.headers);
+      if (e instanceof URIError) return reply(res, 400, { statusCode: 400, name: "bad_request", message: "The address contains invalid % encoding" }); // decodeURIComponent on a path segment
       console.error("api error:", e);
       reply(res, 500, { statusCode: 500, name: "internal_server_error", message: "Something went wrong on our side" });
     }

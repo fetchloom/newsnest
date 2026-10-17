@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
+import { request } from "node:http";
+import { clientIp } from "../src/server/client.ts";
 import { harness, verifiedDomain } from "./helpers.ts";
 import type { Harness } from "./helpers.ts";
 
@@ -18,7 +20,7 @@ describe("dashboard login", () => {
   test("starts in setup mode and enforces a password length", async () => {
     const s = await (await fetch(h.base + "/auth/status")).json();
     assert.deepEqual(s, { setup_required: true, authenticated: false });
-    assert.equal((await post("/auth/setup", { password: "short" })).status, 422);
+    assert.equal((await post("/auth/setup", { password: "short", setup_code: h.app.setupCode })).status, 422);
   });
 
   test("setup needs the X-Newsnest header", async () => {
@@ -27,13 +29,13 @@ describe("dashboard login", () => {
   });
 
   test("setup signs you in with an HttpOnly, SameSite=Strict cookie, then closes", async () => {
-    const res = await post("/auth/setup", { password: "correct horse battery" });
+    const res = await post("/auth/setup", { password: "correct horse battery", setup_code: h.app.setupCode });
     assert.equal(res.status, 201);
     const raw = res.headers.get("set-cookie") ?? "";
     assert.match(raw, /HttpOnly/);
     assert.match(raw, /SameSite=Strict/);
     cookie = cookieOf(res);
-    assert.equal((await post("/auth/setup", { password: "another password!" })).status, 409);
+    assert.equal((await post("/auth/setup", { password: "another password!", setup_code: h.app.setupCode })).status, 409, "the code is useless once a password exists");
   });
 
   test("a session can use the API, but only with the custom header", async () => {
@@ -114,5 +116,106 @@ describe("changing and recovering the password", () => {
     const second = createApp({ ...hh.cfg, adminPassword: "recovered password!" }, { serveSite: false });
     assert.ok(checkPassword(second.db, "recovered password!"));
     await second.close();
+  });
+});
+
+describe("first-run setup code", () => {
+  let hh: Harness;
+  before(async () => { hh = await harness(); });
+  after(() => hh.close());
+  const setup = (body: unknown, headers: Record<string, string> = {}) =>
+    fetch(hh.base + "/auth/setup", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1", ...headers }, body: JSON.stringify(body) });
+  /** fetch() won't let us lie about Host, so go through node:http. */
+  const setupWithHost = (host: string, body: unknown) => new Promise<number>((resolve, reject) => {
+    const u = new URL(hh.base);
+    const req = request({ host: u.hostname, port: u.port, path: "/auth/setup", method: "POST", headers: { host, "content-type": "application/json", "x-newsnest": "1" } }, (res) => { res.resume(); resolve(res.statusCode ?? 0); });
+    req.on("error", reject);
+    req.end(JSON.stringify(body));
+  });
+
+  test("a code is generated on first start and has the XXXX-XXXX shape", () => {
+    assert.match(hh.app.setupCode ?? "", /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  });
+
+  test("a missing or wrong code is rejected and creates nothing", async () => {
+    assert.equal((await setup({ password: "correct horse battery" })).status, 403);
+    assert.equal((await setup({ password: "correct horse battery", setup_code: "AAAA-AAAA" })).status, 403);
+    assert.equal((await (await fetch(hh.base + "/auth/status")).json()).setup_required, true);
+  });
+
+  test("a proxy header or a non-local Host closes setup even with the right code", async () => {
+    const body = { password: "correct horse battery", setup_code: hh.app.setupCode };
+    assert.equal((await setup(body, { "x-forwarded-for": "203.0.113.9" })).status, 403);
+    assert.equal(await setupWithHost("news.example.com", body), 403);
+    assert.equal(await setupWithHost("localhost:8700", { ...body, password: "short" }), 422, "a loopback Host passes the local check");
+  });
+
+  test("the right code works once, in any case and with or without the dash", async () => {
+    const res = await setup({ password: "correct horse battery", setup_code: hh.app.setupCode!.toLowerCase().replace("-", " ") });
+    assert.equal(res.status, 201);
+    assert.equal((await setup({ password: "another password!", setup_code: hh.app.setupCode })).status, 409);
+  });
+
+  test("guessing the code is throttled like a login", async () => {
+    const h2 = await harness();
+    try {
+      const guess = () => fetch(h2.base + "/auth/setup", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1" }, body: JSON.stringify({ password: "correct horse battery", setup_code: "ZZZZ-ZZZZ" }) });
+      for (let i = 0; i < 10; i++) assert.equal((await guess()).status, 403);
+      assert.equal((await guess()).status, 429);
+    } finally { await h2.close(); }
+  });
+
+  test("a password in the environment skips the code entirely", async () => {
+    const h3 = await harness({ adminPassword: "from the environment" });
+    try { assert.equal(h3.app.setupCode, null); } finally { await h3.close(); }
+  });
+});
+
+describe("login throttle keys", () => {
+  let hh: Harness;
+  before(async () => { hh = await harness({ trustProxy: true, adminPassword: "original password!" }); });
+  after(() => hh.close());
+  const login = (password: string, xff?: string, extra: Record<string, string> = {}) =>
+    fetch(hh.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1", ...(xff ? { "x-forwarded-for": xff } : {}), ...extra }, body: JSON.stringify({ password }) });
+
+  test("with a trusted proxy each client address has its own bucket", async () => {
+    for (let i = 0; i < 10; i++) assert.equal((await login("wrong wrong wrong", "198.51.100.1")).status, 401);
+    assert.equal((await login("original password!", "198.51.100.1")).status, 429);
+    assert.equal((await login("original password!", "198.51.100.2")).status, 200, "another client is not affected");
+  });
+
+  test("only the proxy's own (last) entry counts, so a client can't pick its bucket", async () => {
+    assert.equal((await login("original password!", "203.0.113.77, 198.51.100.1")).status, 429, "same last hop, same bucket");
+    assert.equal((await login("wrong wrong wrong", "198.51.100.1, 198.51.100.50")).status, 401, "a different last hop is a different client");
+  });
+
+  test("a signed-in owner is not blocked by a stranger's failures", async () => {
+    const owner = cookieOf(await login("original password!", "198.51.100.99"));
+    for (let i = 0; i < 10; i++) await login("wrong wrong wrong", "198.51.100.1");
+    const change = await fetch(hh.base + "/auth/password", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1", cookie: owner, "x-forwarded-for": "198.51.100.1" }, body: JSON.stringify({ password: "original password!", new_password: "a brand new password" }) });
+    assert.equal(change.status, 200);
+  });
+
+  test("auth bodies are capped at 4 KB", async () => {
+    assert.equal((await login("x".repeat(5000), "198.51.100.3")).status, 413);
+  });
+
+  test("without a trusted proxy the header is ignored", async () => {
+    const h2 = await harness({ adminPassword: "original password!" });
+    try {
+      const l = (xff: string) => fetch(h2.base + "/auth/login", { method: "POST", headers: { "content-type": "application/json", "x-newsnest": "1", "x-forwarded-for": xff }, body: JSON.stringify({ password: "wrong wrong wrong" }) });
+      for (let i = 0; i < 10; i++) await l(`10.0.0.${i}`);
+      assert.equal((await l("10.9.9.9")).status, 429, "rotating the header doesn't buy fresh attempts");
+    } finally { await h2.close(); }
+  });
+
+  test("clientIp: IPv6 clients share their /64, v4-mapped addresses are plain v4, junk falls back to the socket", () => {
+    const req = (xff: string, peer = "10.0.0.1") => ({ headers: { "x-forwarded-for": xff }, socket: { remoteAddress: peer } }) as never;
+    const cfg = { trustProxy: true };
+    assert.equal(clientIp(req("2001:db8:1:2:aaaa::1"), cfg), clientIp(req("2001:db8:1:2:bbbb::9"), cfg));
+    assert.notEqual(clientIp(req("2001:db8:1:3::1"), cfg), clientIp(req("2001:db8:1:2::1"), cfg));
+    assert.equal(clientIp(req("::ffff:192.0.2.5"), cfg), "192.0.2.5");
+    assert.equal(clientIp(req("not-an-ip"), cfg), "10.0.0.1");
+    assert.equal(clientIp(req("1.2.3.4"), { trustProxy: false }), "10.0.0.1");
   });
 });

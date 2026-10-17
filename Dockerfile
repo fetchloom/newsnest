@@ -1,3 +1,5 @@
+# A moving tag, so rebuilding picks up Node security fixes. To pin an exact image instead, find its digest with
+# `docker buildx imagetools inspect node:24-alpine` and write FROM node:24-alpine@sha256:<digest>.
 FROM node:24-alpine
 WORKDIR /app
 COPY server.ts package.json ./

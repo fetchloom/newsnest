@@ -7,6 +7,7 @@ import type { App } from "../src/server/app.ts";
 import { loadConfig } from "../src/server/config.ts";
 import type { Config } from "../src/server/config.ts";
 import { createKey } from "../src/server/keys.ts";
+import type { Transport } from "../src/server/queue.ts";
 import type { Fetch } from "../src/server/webhooks.ts";
 
 export interface FakeSmtp {
@@ -79,7 +80,7 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-export async function harness(overrides: Partial<Config> = {}): Promise<Harness> {
+export async function harness(overrides: Partial<Config> = {}, deps: { transport?: Transport } = {}): Promise<Harness> {
   const smtp = await fakeSmtp();
   const dir = mkdtempSync(join(tmpdir(), "newsnest-test-"));
   const dnsTxt = new Map<string, string[][]>();
@@ -104,7 +105,7 @@ export async function harness(overrides: Partial<Config> = {}): Promise<Harness>
     return new Response("ok", { status: webhookStatus.code });
   };
 
-  const app = createApp(cfg, { fetch: fakeFetch, serveSite: false });
+  const app = createApp(cfg, { fetch: fakeFetch, serveSite: false, ...deps });
   await new Promise<void>((r) => app.server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${(app.server.address() as net.AddressInfo).port}`;
   const key = createKey(app.db, { name: "test" }).key;

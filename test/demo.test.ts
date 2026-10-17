@@ -42,6 +42,14 @@ describe("sample data", () => {
     assert.equal((h.app.db.prepare("SELECT COUNT(*) AS n FROM posts WHERE status IN ('scheduled','sending')").get() as { n: number }).n, 0);
   });
 
+  test("the hourly cleanup of stale sign-ups leaves sample data alone", async () => {
+    const { purgeStale } = await import("../src/server/newsletter/maintenance.ts");
+    const count = (): number => (h.app.db.prepare("SELECT COUNT(*) AS n FROM subscribers").get() as { n: number }).n;
+    const before = count();
+    assert.equal(purgeStale(h.app.db, h.cfg).subscribers, 0);
+    assert.equal(count(), before);
+  });
+
   test("it won't load twice, or into an instance that already has real data", async () => {
     assert.equal((await h.call("POST", "/demo")).status, 409);
   });

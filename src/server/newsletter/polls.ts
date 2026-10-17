@@ -119,12 +119,16 @@ export const listSurveys = (db: DB) => ({ object: "list", data: (db.prepare("SEL
 export const getSurvey = (db: DB, id: string) => surveyView(db, surveyRow(db, id));
 export function deleteSurvey(db: DB, id: string) { surveyRow(db, id); db.prepare("DELETE FROM surveys WHERE id = ?").run(id); return { id, object: "survey", deleted: true }; }
 
+/** Anonymous responses (no valid subscriber link) per survey. Anyone can post one, so the table can't be left to grow without end. */
+const MAX_ANONYMOUS_RESPONSES = 1000;
+
 /** Validates and stores one response. `subscriberToken` ties it to a person (one response each). */
 export function submitSurvey(db: DB, surveyId: string, subscriberToken: string | null, answers: Record<string, unknown>): "ok" | "closed" | "already" {
   const s = surveyRow(db, surveyId);
   if (s.closed) return "closed";
   const sub = subscriberToken ? findByToken(db, subscriberToken) : undefined;
   if (sub && db.prepare("SELECT 1 FROM survey_responses WHERE survey_id = ? AND subscriber_id = ?").get(surveyId, sub.id)) return "already";
+  if (!sub && (db.prepare("SELECT COUNT(*) AS n FROM survey_responses WHERE survey_id = ? AND subscriber_id IS NULL").get(surveyId) as { n: number }).n >= MAX_ANONYMOUS_RESPONSES) return "closed";
 
   const clean: Record<string, unknown> = {};
   for (const q of parseJson<Question[]>(s.questions, [])) {

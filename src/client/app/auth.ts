@@ -6,24 +6,27 @@ import { busy, logo } from "./ui.js";
 export function authScreen(setup: boolean, done: () => void): HTMLElement {
   const password = h("input", { class: "input", type: "password", autocomplete: setup ? "off" : "current-password", autofocus: true });
   const confirm = h("input", { class: "input", type: "password", autocomplete: "off" });
+  const code = h("input", { class: "input", type: "text", autocomplete: "off", autocapitalize: "characters", spellcheck: false, placeholder: "XXXX-XXXX" });
   const error = h("div", { class: "error", role: "alert" });
   const submit = h("button", { class: "btn btn-solid", type: "submit" }, setup ? "Create password" : "Sign in");
 
   const form = h("form", { class: "form", onsubmit: (e: Event) => {
     e.preventDefault();
     error.textContent = "";
+    if (setup && !code.value.trim()) { error.textContent = "Enter the setup code."; return; }
     if (!password.value) { error.textContent = "Enter your password."; return; }
     if (setup && password.value.length < 10) { error.textContent = "Use at least 10 characters."; return; }
     if (setup && password.value !== confirm.value) { error.textContent = "The two passwords don't match."; return; }
     void busy(submit, async () => {
       try {
-        await api("POST", setup ? "/auth/setup" : "/auth/login", { password: password.value });
+        await api("POST", setup ? "/auth/setup" : "/auth/login", setup ? { password: password.value, setup_code: code.value } : { password: password.value });
         done();
       } catch (err) {
         error.textContent = (err as Error).message;
       }
     });
   } },
+    setup && h("div", { class: "field" }, h("label", {}, "Setup code"), code, h("span", { class: "hint" }, "Printed in the terminal where you started Newsnest")),
     h("div", { class: "field" }, h("label", {}, "Password"), password, setup && h("span", { class: "hint" }, "At least 10 characters. Stored hashed on this machine.")),
     setup && h("div", { class: "field" }, h("label", {}, "Repeat password"), confirm),
     error,

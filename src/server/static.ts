@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,18 @@ const mime: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
+/** Client TypeScript is stripped on request; keep the result until the file changes. */
+const compiled = new Map<string, { mtimeMs: number; js: string }>();
+
+async function compileCached(file: string): Promise<string> {
+  const { mtimeMs } = await stat(file);
+  const hit = compiled.get(file);
+  if (hit && hit.mtimeMs === mtimeMs) return hit.js;
+  const js = await compileTs(file);
+  compiled.set(file, { mtimeMs, js });
+  return js;
+}
+
 async function resolveBody(pathname: string): Promise<{ body: string | Buffer; type: string } | null> {
   const rel = pathname.endsWith("/") ? pathname + "index.html" : pathname;
   const abs = normalize(join(pub, rel));
@@ -31,7 +43,7 @@ async function resolveBody(pathname: string): Promise<{ body: string | Buffer; t
       const ts = normalize(join(clientSrc, rel.slice("/js/".length, -".js".length) + ".ts"));
       if (!ts.startsWith(clientSrc + sep)) return null;
       try {
-        return { body: await compileTs(ts), type: mime[".js"] };
+        return { body: await compileCached(ts), type: mime[".js"] };
       } catch {
         return null;
       }
@@ -40,8 +52,8 @@ async function resolveBody(pathname: string): Promise<{ body: string | Buffer; t
   }
 }
 
-export async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const { pathname } = new URL(req.url ?? "/", "http://localhost");
+export async function serveStatic(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  const { pathname } = url;
   if (pathname === "/app") {
     res.writeHead(301, { location: "/app/" });
     res.end();

@@ -35,8 +35,17 @@ describe("subscribe, confirm, welcome", () => {
     const link = /href="(http[^"]+\/confirm\/[A-Za-z0-9_-]+)"/.exec(bodyOf(confirm.data))![1];
     assert.ok(!/Unsubscribe/.test(bodyOf(confirm.data)), "a confirmation email has no unsubscribe link");
 
-    const page = await pub(new URL(link).pathname);
+    const path = new URL(link).pathname;
+    const ask = await pub(path);
+    assert.equal(ask.status, 200);
+    assert.match(await ask.text(), /Confirm my subscription/);
+    assert.equal((await h.call("GET", "/subscribers/fran@example.org")).json.status, "pending", "a GET (scanner, link preview) confirms nothing");
+    const scanned = await form(path, {}, { "user-agent": "Mozilla/5.0 (compatible; Barracuda Sentinel)" });
+    assert.equal(scanned.status, 200);
+    assert.equal((await h.call("GET", "/subscribers/fran@example.org")).json.status, "pending", "a scanner's POST doesn't either");
+    const page = await form(path, {});
     assert.equal(page.status, 200);
+    assert.match(await page.text(), /You're in/);
     assert.equal((await h.call("GET", "/subscribers/fran@example.org")).json.status, "active");
     const welcome = await mailTo("fran@example.org", /Welcome to Growth Letter/);
     assert.match(bodyOf(welcome.data), /Welcome aboard, Fran!/);
@@ -153,7 +162,7 @@ describe("referrals", () => {
 
     for (const n of [1, 2]) {
       const confirm = await mailTo(`friend${n}@example.org`, /Confirm your subscription/);
-      await pub(new URL(/href="(http[^"]+\/confirm\/[^"]+)"/.exec(bodyOf(confirm.data))![1]).pathname);
+      await form(new URL(/href="(http[^"]+\/confirm\/[^"]+)"/.exec(bodyOf(confirm.data))![1]).pathname, {});
     }
     assert.equal((await h.call("GET", "/subscribers/referrer@example.org")).json.referral.confirmed_referrals, 2);
     const reward = await mailTo("referrer@example.org", /You unlocked Free ebook/);
@@ -191,7 +200,7 @@ describe("automations", () => {
 
     await sub("autoa@example.org", { fields: { first_name: "Auto" }, send_confirmation: true });
     const conf = await mailTo("autoa@example.org", /Confirm your subscription/);
-    await pub(new URL(/href="(http[^"]+\/confirm\/[^"]+)"/.exec(bodyOf(conf.data))![1]).pathname);
+    await form(new URL(/href="(http[^"]+\/confirm\/[^"]+)"/.exec(bodyOf(conf.data))![1]).pathname, {});
     await h.app.queue.tick();
 
     const welcome = await mailTo("autoa@example.org", /^Welcome Auto$/);
@@ -232,5 +241,54 @@ describe("automations", () => {
     assert.equal((await h.call("POST", "/events", { email: "autoc@example.org", name: "purchase", data: { total: 12 } })).status, 201);
     await h.app.queue.tick();
     assert.ok((await h.call("GET", "/subscribers/autoc@example.org")).json.tags.includes("customer"));
+  });
+});
+
+describe("consent", () => {
+  const statusOf = async (email: string) => (await h.call("GET", `/subscribers/${email}`)).json.status;
+  const tokenOf = (email: string) => (h.app.db.prepare("SELECT token FROM subscribers WHERE email = ?").get(email) as { token: string }).token;
+
+  test("the public form never brings an unsubscribed address back, with or without double opt-in", async () => {
+    await sub("gone@example.org");
+    await form(`/u/${tokenOf("gone@example.org")}`, {});
+    assert.equal(await statusOf("gone@example.org"), "unsubscribed");
+    await h.app.queue.tick(); // let mail from earlier tests drain first
+    const before = h.smtp.messages.length;
+
+    for (const doubleOptIn of [true, false]) {
+      await h.call("PATCH", "/publication", { double_opt_in: doubleOptIn });
+      const res = await form("/subscribe", { email: "gone@example.org" });
+      assert.equal(res.status, 200, "same generic page, nothing is revealed");
+      assert.equal(await statusOf("gone@example.org"), "unsubscribed", `double_opt_in=${doubleOptIn}`);
+    }
+    await h.call("PATCH", "/publication", { double_opt_in: true });
+    await h.app.queue.tick();
+    assert.equal(h.smtp.messages.length, before, "no mail goes out either");
+  });
+
+  test("a confirmation link only acts on pending subscribers", async () => {
+    const tok = tokenOf("gone@example.org");
+    const res = await form(`/confirm/${tok}`, {});
+    assert.equal(res.status, 404);
+    assert.equal(await statusOf("gone@example.org"), "unsubscribed");
+    assert.equal((await pub(`/confirm/${tok}`)).status, 404);
+
+    await sub("bouncy@example.org", { send_confirmation: true });
+    h.app.db.prepare("UPDATE subscribers SET status = 'bounced' WHERE email = 'bouncy@example.org'").run();
+    assert.equal((await form(`/confirm/${tokenOf("bouncy@example.org")}`, {})).status, 404);
+    assert.equal(await statusOf("bouncy@example.org"), "bounced");
+  });
+
+  test("the one-click resubscribe on the unsubscribe page still works", async () => {
+    const back = await form(`/u/${tokenOf("gone@example.org")}`, { action: "resubscribe" });
+    assert.equal(back.status, 200);
+    assert.equal(await statusOf("gone@example.org"), "active");
+  });
+
+  test("the owner can still reactivate through the API", async () => {
+    await form(`/u/${tokenOf("gone@example.org")}`, {});
+    assert.equal(await statusOf("gone@example.org"), "unsubscribed");
+    await sub("gone@example.org", { reactivate: true });
+    assert.equal(await statusOf("gone@example.org"), "active");
   });
 });

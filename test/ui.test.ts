@@ -253,4 +253,14 @@ describe("interactions", () => {
     await sleep(300);
     assert.equal((await h.call("GET", "/publication")).json.name, "Renamed Letter");
   });
+
+  test("the first-run screen asks for the setup code, and sign-in does not", async () => {
+    const { authScreen } = await import("../src/client/app/auth.ts");
+    const setup = authScreen(true, () => {}) as unknown as FakeElement;
+    assert.match(textOf(setup), /Setup code/);
+    assert.match(textOf(setup), /Printed in the terminal where you started Newsnest/);
+    find(setup, "form").dispatch("submit", { preventDefault() {} });
+    assert.match(textOf(find(setup, ".error")), /Enter the setup code/);
+    assert.doesNotMatch(textOf(authScreen(false, () => {}) as unknown as FakeElement), /Setup code/);
+  });
 });

@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { clientIp, isHttps } from "../client.ts";
 import type { Config } from "../config.ts";
 import type { DB } from "../db.ts";
 import { ApiError } from "../errors.ts";
+import { windowLimiter } from "../limiter.ts";
 import { now } from "../ids.ts";
 import { esc } from "../markdown.ts";
 import { sendMagicLink } from "./mailer.ts";
@@ -11,20 +13,10 @@ import { pollResults, pollRow, submitSurvey, surveyRow, vote } from "./polls.ts"
 import type { Question } from "./polls.ts";
 import { clearReaderSession, createReaderSession, readerCookie, shell, subscribeForm } from "./site.ts";
 import { activate, confirmByToken, createSubscriber, findByEmail, findByToken, unsubscribeByToken } from "./subscribers.ts";
-import { GIF, isBot, recordClick, recordOpen } from "./tracking.ts";
+import { GIF, isBot, linkTarget, recordClick, recordOpen } from "./tracking.ts";
 import { parseJson } from "./util.ts";
 
 const MAX_FORM = 20_000;
-
-function limiter() {
-  const hits = new Map<string, { n: number; reset: number }>();
-  return (key: string, max: number, windowMs: number): boolean => {
-    const t = now();
-    const h = hits.get(key);
-    if (!h || h.reset < t) { hits.set(key, { n: 1, reset: t + windowMs }); if (hits.size > 5000) for (const [k, v] of hits) if (v.reset < t) hits.delete(k); return true; }
-    return ++h.n <= max;
-  };
-}
 
 async function readForm(req: IncomingMessage): Promise<Record<string, any>> {
   let size = 0;
@@ -35,8 +27,9 @@ async function readForm(req: IncomingMessage): Promise<Record<string, any>> {
     chunks.push(c);
   }
   const raw = Buffer.concat(chunks).toString("utf8");
-  if ((req.headers["content-type"] ?? "").includes("json")) { try { const v = JSON.parse(raw || "{}"); return v && typeof v === "object" ? v : {}; } catch { return {}; } }
-  const out: Record<string, any> = {};
+  // No prototype: a field named __proto__ or constructor is just a field.
+  const out: Record<string, any> = Object.create(null);
+  if ((req.headers["content-type"] ?? "").includes("json")) { try { const v = JSON.parse(raw || "{}"); return v && typeof v === "object" ? Object.assign(out, v) : out; } catch { return out; } }
   for (const [k, v] of new URLSearchParams(raw)) out[k] = k in out ? [].concat(out[k], v as never) : v;
   return out;
 }
@@ -44,12 +37,9 @@ async function readForm(req: IncomingMessage): Promise<Record<string, any>> {
 const safeRedirect = (r: unknown): string => (typeof r === "string" && /^\/(?!\/)[^\s\\]*$/.test(r) ? r : "/");
 
 export function createPublic(db: DB, cfg: Config) {
-  const allow = limiter();
+  const allow = windowLimiter();
 
-  const ipOf = (req: IncomingMessage): string => {
-    if (cfg.trustProxy) { const f = String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim(); if (f) return f; }
-    return req.socket.remoteAddress ?? "unknown";
-  };
+  const ipOf = (req: IncomingMessage): string => clientIp(req, cfg);
 
   return async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     const path = url.pathname;
@@ -60,7 +50,8 @@ export function createPublic(db: DB, cfg: Config) {
     const ua = String(req.headers["user-agent"] ?? "");
 
     const html = (status: number, body: string, extra: Record<string, string> = {}): true => {
-      res.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...extra });
+      // Several of these pages depend on a ?s= token or the reader's cookie, so no shared cache may keep them.
+      res.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store", vary: "Cookie", "x-content-type-options": "nosniff", ...extra });
       res.end(body);
       return true;
     };
@@ -69,19 +60,24 @@ export function createPublic(db: DB, cfg: Config) {
     const redirect = (to: string, headers: Record<string, string> = {}): true => { res.writeHead(302, { location: to, "cache-control": "no-store", ...headers }); res.end(); return true; };
     const json = (status: number, body: unknown, extra: Record<string, string> = {}): true => { res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store", ...extra }); res.end(JSON.stringify(body)); return true; };
     const wantsJson = (req.headers.accept ?? "").includes("application/json") || (req.headers["content-type"] ?? "").includes("json");
-    const secure = req.headers["x-forwarded-proto"] === "https";
+    const secure = isHttps(req, db, cfg);
     let m: RegExpExecArray | null;
 
     // ---- tracking ----
     if ((m = /^\/o\/([A-Za-z0-9_-]+)\.gif$/.exec(path))) {
-      try { recordOpen(db, cfg, m[1], ua); } catch (e) { console.error("open:", (e as Error).message); }
+      // Over the limit the pixel is still served, it just isn't recorded: every hit would otherwise write a row and fire webhooks.
+      if (allow(`open:ip:${ipOf(req)}`, 1200, 60_000) && allow(`open:${m[1]}`, 20, 60_000)) {
+        try { recordOpen(db, cfg, m[1], ua); } catch (e) { console.error("open:", (e as Error).message); }
+      }
       res.writeHead(200, { "content-type": "image/gif", "cache-control": "no-store, max-age=0", "content-length": GIF.length });
       res.end(GIF);
       return true;
     }
     if ((m = /^\/l\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)$/.exec(path))) {
       let target: string | null = null;
-      try { target = recordClick(db, cfg, m[1], m[2], ua); } catch (e) { console.error("click:", (e as Error).message); }
+      try {
+        target = allow(`click:ip:${ipOf(req)}`, 1200, 60_000) && allow(`click:${m[2]}`, 60, 60_000) ? recordClick(db, cfg, m[1], m[2], ua) : linkTarget(db, m[1]);
+      } catch (e) { console.error("click:", (e as Error).message); }
       return redirect(target ?? base);
     }
 
@@ -104,15 +100,17 @@ export function createPublic(db: DB, cfg: Config) {
         const done = (status: "pending" | "active"): true => wantsJson
           ? json(200, { ok: true, status }, cors)
           : page(200, "Thanks", `<h1 class="title">${status === "pending" ? "Check your inbox" : "You're subscribed"}</h1><p>${status === "pending" ? "We sent you an email with a link to confirm your subscription." : `Welcome to ${esc(pub.name)}.`}</p>`, cors);
+        const tooMany = (): true => wantsJson ? json(429, { ok: false, error: "Too many attempts. Try again later." }, cors) : page(429, "Slow down", "<h1 class=\"title\">Too many attempts</h1><p>Please try again in a little while.</p>", cors);
         if (f.website) return done(pub.double_opt_in ? "pending" : "active"); // honeypot: pretend it worked
-        if (!allow(`sub:${ipOf(req)}`, 10, 3600_000)) return wantsJson ? json(429, { ok: false, error: "Too many attempts. Try again later." }, cors) : page(429, "Slow down", "<h1 class=\"title\">Too many attempts</h1><p>Please try again in a little while.</p>", cors);
+        if (!allow(`sub:${ipOf(req)}`, 10, 3600_000)) return tooMany();
         const email = String(f.email ?? "");
         const existing = findByEmail(db, email);
         const recentConfirm = existing?.status === "pending" && db.prepare("SELECT 1 FROM emails WHERE subscriber_id = ? AND kind = 'system' AND subject LIKE 'Confirm your subscription%' AND created_at > ?").get(existing.id, now() - 10 * 60_000);
         const first = typeof f.first_name === "string" ? f.first_name.trim().slice(0, 100) : "";
+        if (!recentConfirm && !allow("mail:public", cfg.publicMailPerHour, 3600_000)) return tooMany(); // caps the mail strangers can trigger
         try {
           if (!recentConfirm) createSubscriber(db, cfg, {
-            email, fields: first ? { first_name: first } : undefined, source: "form", status: pub.double_opt_in ? "pending" : "active", resubscribe: true,
+            email, fields: first ? { first_name: first } : undefined, source: "form", status: pub.double_opt_in ? "pending" : "active", // an unsubscribed address stays unsubscribed; only its own /u/ link brings it back
             utm_source: f.utm_source, utm_medium: f.utm_medium, utm_campaign: f.utm_campaign, referrer: f.referrer, ref: typeof f.ref === "string" ? f.ref : null,
           });
         } catch (e) {
@@ -123,17 +121,22 @@ export function createPublic(db: DB, cfg: Config) {
       }
     }
 
-    if ((m = /^\/confirm\/([A-Za-z0-9_-]+)$/.exec(path))) {
-      const s = confirmByToken(db, cfg, m[1]);
-      return s
-        ? page(200, "Confirmed", `<h1 class="title">You're in.</h1><p>Thanks for confirming. Welcome to ${esc(pub.name)}.</p><p><a href="${base}/p">Read the latest posts →</a></p>`)
-        : page(404, "Link not valid", `<h1 class="title">That link isn't valid</h1><p>It may have expired. <a href="${base}/subscribe">Subscribe again</a> to get a new one.</p>`);
+    // A GET only shows the button: mail scanners and link previewers open every link, and must not subscribe anyone.
+    if ((m = /^\/confirm\/([A-Za-z0-9_-]+)$/.exec(path)) && (method === "GET" || method === "POST")) {
+      const tok = m[1];
+      const confirmed = method === "POST" && !isBot(ua) ? confirmByToken(db, cfg, tok) : null;
+      const sub = confirmed ?? findByToken(db, tok);
+      if (!sub || (sub.status !== "pending" && sub.status !== "active")) return page(404, "Link not valid", `<h1 class="title">That link isn't valid</h1><p>It may have expired. <a href="${base}/subscribe">Subscribe again</a> to get a new one.</p>`);
+      if (sub.status === "active") return page(200, "Confirmed", `<h1 class="title">You're in.</h1><p>Thanks for confirming. Welcome to ${esc(pub.name)}.</p><p><a href="${base}/p">Read the latest posts →</a></p>`);
+      return page(200, "Confirm your subscription", `<h1 class="title">Confirm your subscription</h1><p>One more click and you'll get ${esc(pub.name)} in your inbox.</p><form method="post" action="${base}/confirm/${tok}" novalidate><button class="btn" type="submit">Confirm my subscription</button></form>`);
     }
 
     // ---- unsubscribe ----
     if ((m = /^\/u\/([A-Za-z0-9_-]+)$/.exec(path))) {
       const tok = m[1];
-      const postId = url.searchParams.get("p");
+      // ?p= says which post the link was in. Only a real post id is kept, never arbitrary text from the URL.
+      const rawPost = (url.searchParams.get("p") ?? "").slice(0, 64);
+      const postId = rawPost && db.prepare("SELECT 1 FROM posts WHERE id = ?").get(rawPost) ? rawPost : null;
       const sub = findByToken(db, tok);
       if (method === "POST") {
         const f = await readForm(req);
@@ -174,6 +177,7 @@ export function createPublic(db: DB, cfg: Config) {
       const qs = parseJson<Question[]>(survey.questions, []);
       const tok = url.searchParams.get("s") ?? "";
       if (method === "POST") {
+        if (!allow(`survey:ip:${ipOf(req)}`, 10, 3600_000) || !allow(`survey:${survey.id}`, 300, 3600_000)) return page(429, "Slow down", `<h1 class="title">Too many attempts</h1><p>Please try again in a little while.</p>`);
         const f = await readForm(req);
         const answers: Record<string, unknown> = {};
         for (const q of qs) answers[q.id] = f[`q_${q.id}`];
@@ -181,7 +185,7 @@ export function createPublic(db: DB, cfg: Config) {
           const r = submitSurvey(db, survey.id, typeof f.s === "string" && f.s ? f.s : null, answers);
           return page(200, "Thanks", `<h1 class="title">${r === "ok" ? "Thanks for your answers" : r === "already" ? "You've already responded" : "This survey is closed"}</h1>`);
         } catch (e) {
-          if (e instanceof ApiError) return page(422, survey.title, `<div class="notice">${esc(e.message)}</div><p><a href="javascript:history.back()">Go back</a></p>`);
+          if (e instanceof ApiError) return page(422, survey.title, `<div class="notice">${esc(e.message)}</div><p><a href="${base}/s/${survey.id}${tok ? `?s=${encodeURIComponent(tok)}` : ""}">Go back</a></p>`);
           throw e;
         }
       }
@@ -203,19 +207,23 @@ export function createPublic(db: DB, cfg: Config) {
     // ---- reader sign-in for gated posts ----
     if (path === "/login" && method === "POST") {
       const f = await readForm(req);
-      if (!f.website && allow(`login:${ipOf(req)}`, 10, 3600_000)) {
-        const s = findByEmail(db, String(f.email ?? ""));
-        if (s?.status === "active") sendMagicLink(db, cfg, s, safeRedirect(f.redirect));
+      // Per visitor, per target address (so one inbox can't be flooded from many addresses) and overall. The page is the same either way.
+      const target = String(f.email ?? "").trim().toLowerCase().slice(0, 254);
+      if (!f.website && allow(`login:${ipOf(req)}`, 10, 3600_000) && allow(`login-to:${target}`, 3, 30 * 60_000)) {
+        const s = findByEmail(db, target);
+        if (s?.status === "active" && allow("mail:public", cfg.publicMailPerHour, 3600_000)) sendMagicLink(db, cfg, s, safeRedirect(f.redirect));
       }
       return page(200, "Check your inbox", `<h1 class="title">Check your inbox</h1><p>If that address is subscribed, we've sent a sign-in link. It works once and expires in 20 minutes.</p>`);
     }
     if (path === "/login" && method === "GET") {
       return page(200, "Sign in", `<h1 class="title">Sign in to read</h1><p class="meta">We'll email you a link. No password needed.</p><form class="form" method="post" action="${base}/login" novalidate><input type="email" name="email" placeholder="you@example.com" aria-label="Email address"><input type="hidden" name="redirect" value="${esc(safeRedirect(url.searchParams.get("redirect")))}"><input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" type="submit">Email me a link</button></form>`);
     }
-    if ((m = /^\/magic\/([A-Za-z0-9_-]+)$/.exec(path))) {
+    // A GET only shows the button, for the same reason as /confirm: scanners open every link in a mail and would use up the token.
+    if ((m = /^\/magic\/([A-Za-z0-9_-]+)$/.exec(path)) && (method === "GET" || method === "POST")) {
       const h = createHash("sha256").update(m[1]).digest("hex");
       const row = db.prepare("SELECT subscriber_id, redirect FROM magic_tokens WHERE id = ? AND expires_at > ?").get(h, now()) as { subscriber_id: string; redirect: string } | undefined;
       if (!row) return page(404, "Link expired", `<h1 class="title">That sign-in link has expired</h1><p><a href="${base}/login">Get a new one</a></p>`);
+      if (method === "GET") return page(200, "Sign in", `<h1 class="title">Sign in to ${esc(pub.name)}</h1><form method="post" action="${base}/magic/${m[1]}" novalidate><button class="btn" type="submit">Sign in</button></form>`);
       db.prepare("DELETE FROM magic_tokens WHERE id = ?").run(h); // single use
       return redirect(safeRedirect(row.redirect), { "set-cookie": readerCookie(createReaderSession(db, row.subscriber_id), secure) });
     }

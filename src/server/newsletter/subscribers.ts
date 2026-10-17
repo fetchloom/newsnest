@@ -167,10 +167,11 @@ export function activate(db: DB, cfg: Config, id: string, announce = true, welco
   return true;
 }
 
+/** Only a pending subscriber is confirmed. A confirmation link must never undo an unsubscribe or a bounce. */
 export function confirmByToken(db: DB, cfg: Config, tok: string): SubscriberRow | null {
   const s = findByToken(db, tok);
-  if (!s || s.status === "bounced") return null;
-  if (s.status !== "active") activate(db, cfg, s.id);
+  if (!s || (s.status !== "pending" && s.status !== "active")) return null;
+  if (s.status === "pending") activate(db, cfg, s.id);
   return findById(db, s.id);
 }
 

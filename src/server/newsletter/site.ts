@@ -95,6 +95,12 @@ ${o.name ? '<input type="text" name="first_name" placeholder="First name" aria-l
 ${o.ref ? `<input type="hidden" name="ref" value="${esc(o.ref)}">` : ""}${Object.entries(o.utm ?? {}).map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}">`).join("")}${o.referrer ? `<input type="hidden" name="referrer" value="${esc(o.referrer)}">` : ""}
 <button class="btn" type="submit">${esc(o.button ?? "Subscribe")}</button></form>`;
 
+/** ?page= as a whole number from 1 to 1e6, so nothing odd (1.5, 1e30, NaN) ever becomes an SQL OFFSET. */
+const pageParam = (raw: string | null): number => {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 1), 1_000_000) : 1;
+};
+
 // ---- content helpers ----------------------------------------------------------
 const readable = (db: DB, p: PostRow): boolean => !!p.web_enabled && p.published_at != null && p.published_at <= now();
 const fmtDate = (ms: number): string => new Date(ms).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
@@ -200,13 +206,14 @@ export function handleSite(db: DB, cfg: Config, req: IncomingMessage, res: Serve
   const rel = hostMode ? pathname : pathname.replace(/^\/p/, "") || "/";
   if (!hostMode && !(pathname === "/p" || pathname.startsWith("/p/"))) return false;
   const pub = getPublication(db);
-  const send = (status: number, body: string, type = "text/html; charset=utf-8"): true => {
-    res.writeHead(status, { "content-type": type, "cache-control": "no-cache", "x-content-type-options": "nosniff" });
+  /** `byCookie`: the page differs by reader. `priv`: it was built for one signed-in reader (or is gated), so no shared cache may keep it. */
+  const send = (status: number, body: string, type = "text/html; charset=utf-8", byCookie = false, priv = false): true => {
+    res.writeHead(status, { "content-type": type, "cache-control": priv ? "private, no-store" : "no-cache", ...(byCookie ? { vary: "Cookie" } : {}), "x-content-type-options": "nosniff" });
     res.end(body);
     return true;
   };
 
-  if (rel === "/" || rel === "") return send(200, archivePage(db, cfg, pub, prefix, Math.max(1, Number(query.get("page")) || 1)));
+  if (rel === "/" || rel === "") return send(200, archivePage(db, cfg, pub, prefix, pageParam(query.get("page"))));
   if (rel === "/feed.xml") return send(200, feed(db, cfg, pub, prefix), "application/rss+xml; charset=utf-8");
   if (rel === "/sitemap.xml") return send(200, sitemap(db, cfg, pub, prefix), "application/xml; charset=utf-8");
   if (rel === "/robots.txt" && hostMode) return send(200, `User-agent: *\nAllow: /\nSitemap: ${baseUrl(db, cfg, pub)}/sitemap.xml\n`, "text/plain; charset=utf-8");
@@ -215,9 +222,9 @@ export function handleSite(db: DB, cfg: Config, req: IncomingMessage, res: Serve
   if (slug) {
     const reader = readerFrom(db, req.headers.cookie);
     const post = db.prepare("SELECT * FROM posts WHERE slug = ?").get(slug) as unknown as PostRow | undefined;
-    if (post && readable(db, post)) return send(200, postPage(db, cfg, pub, prefix, post, reader));
+    if (post && readable(db, post)) return send(200, postPage(db, cfg, pub, prefix, post, reader), undefined, true, reader !== null || post.access === "subscribers");
     const page = customPage(db, cfg, pub, prefix, slug, reader);
-    if (page) return send(200, page);
+    if (page) return send(200, page, undefined, true, reader !== null);
   }
   return send(404, shell(db, cfg, pub, prefix, { title: `Not found — ${pub.name}`, noindex: true, body: `<h1 class="title">Page not found</h1><p><a href="${prefix || "/"}">Back to ${esc(pub.name)}</a></p>` }));
 }

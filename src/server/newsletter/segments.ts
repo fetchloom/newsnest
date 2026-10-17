@@ -62,7 +62,7 @@ function textOp(col: string, op: string, v: unknown, field: string): { sql: stri
 
 function numberOp(col: string, op: string, v: unknown, field: string): { sql: string; params: unknown[] } {
   const ops: Record<string, string> = { eq: "=", neq: "!=", gt: ">", gte: ">=", lt: "<", lte: "<=" };
-  if (!ops[op]) throw validation(`Unknown operator "${op}" for "${field}"`);
+  if (!Object.hasOwn(ops, op)) throw validation(`Unknown operator "${op}" for "${field}"`);
   return { sql: `${col} ${ops[op]} ?`, params: [num(v, field)] };
 }
 
@@ -86,8 +86,8 @@ function compileCondition(db: DB, c: Condition, depth: number, at: number): { sq
   if (typeof field !== "string" || typeof op !== "string") throw validation("Each condition needs a field and an operator");
 
   if (STRING_COLS.includes(field)) return textOp(`s.${field}`, op, value, field);
-  if (NUMBER_COLS[field]) return numberOp(NUMBER_COLS[field], op, value, field);
-  if (DATE_COLS[field]) return dateOp(DATE_COLS[field], op, value, field, at);
+  if (Object.hasOwn(NUMBER_COLS, field)) return numberOp(NUMBER_COLS[field], op, value, field);
+  if (Object.hasOwn(DATE_COLS, field)) return dateOp(DATE_COLS[field], op, value, field, at);
 
   if (field === "engagement") {
     const e = engagementSql(at);

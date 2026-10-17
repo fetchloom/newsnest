@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { get } from "node:http";
 import { after, before, describe, test } from "node:test";
-import { COOKIE, createSession } from "../src/server/auth.ts";
+import { COOKIE, createSession, destroySession } from "../src/server/auth.ts";
 import { harness } from "./helpers.ts";
 import type { Harness } from "./helpers.ts";
 
@@ -10,13 +10,15 @@ before(async () => { h = await harness(); });
 after(async () => { await h.close(); });
 
 /** Opens /live and collects what the server sends until `stop()`. */
-function listen(cookie?: string): Promise<{ status: number; text: () => string; stop: () => void }> {
+function listen(cookie?: string): Promise<{ status: number; text: () => string; stop: () => void; ended: () => boolean }> {
   return new Promise((resolve) => {
     get(`${h.base}/live`, { headers: cookie ? { cookie } : {} }, (res) => {
       let buf = "";
+      let ended = false;
       res.setEncoding("utf8");
       res.on("data", (d) => { buf += d; });
-      resolve({ status: res.statusCode ?? 0, text: () => buf, stop: () => res.destroy() });
+      res.on("end", () => { ended = true; });
+      resolve({ status: res.statusCode ?? 0, text: () => buf, stop: () => res.destroy(), ended: () => ended });
     });
   });
 }
@@ -46,6 +48,15 @@ describe("live updates", () => {
     await until(() => stream.text().includes("event: hello"));
     await new Promise((r) => setTimeout(r, 2500));
     assert.ok(!stream.text().includes("event: change"), stream.text());
+    stream.stop();
+  });
+
+  test("the stream closes once its session is gone", async () => {
+    const token = createSession(h.app.db);
+    const stream = await listen(`${COOKIE}=${token}`);
+    await until(() => stream.text().includes("event: hello"));
+    destroySession(h.app.db, token);
+    await until(() => stream.ended());
     stream.stop();
   });
 });

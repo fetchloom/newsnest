@@ -59,9 +59,13 @@ const emailRow = (db: DB, id: string): EmailRow | undefined =>
 
 const recipientOf = (e: EmailRow): string => (JSON.parse(e.to_json) as { email: string }[])[0]?.email ?? "";
 
+/** Repeat opens of one email inside this window are one open: image proxies and impatient refreshes shouldn't write a row and fire a webhook each. */
+const OPEN_COLLAPSE_MS = 5 * 60_000;
+
 export function recordOpen(db: DB, cfg: Config, emailId: string, ua: string): void {
   const e = emailRow(db, emailId);
   if (!e) return;
+  if (db.prepare("SELECT 1 FROM events WHERE email_id = ? AND type = 'email.opened' AND created_at > ? LIMIT 1").get(emailId, now() - OPEN_COLLAPSE_MS)) return;
   const first = !db.prepare("SELECT 1 FROM events WHERE email_id = ? AND type = 'email.opened' LIMIT 1").get(emailId);
   const proxy = /(googleimageproxy|yahoomailproxy|applemail|ggpht)/i.test(ua) ? "image-proxy" : null;
   emit(db, emailId, "email.opened", recipientOf(e), { ua: ua.slice(0, 200), proxy, device: MOBILE_UA.test(ua) ? "mobile" : "desktop" });
@@ -69,6 +73,11 @@ export function recordOpen(db: DB, cfg: Config, emailId: string, ua: string): vo
     const at = now();
     db.prepare("UPDATE subscribers SET opens = opens + ?, last_open_at = ? WHERE id = ?").run(first ? 1 : 0, at, e.subscriber_id);
   }
+}
+
+/** Where a tracked link goes, without recording anything (used when the click is over the rate limit). */
+export function linkTarget(db: DB, linkIdValue: string): string | null {
+  return (db.prepare("SELECT url FROM links WHERE id = ?").get(linkIdValue) as { url: string } | undefined)?.url ?? null;
 }
 
 /** Returns where to send the reader, or null if the link is unknown. */

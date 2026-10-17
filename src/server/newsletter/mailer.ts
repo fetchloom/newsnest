@@ -51,7 +51,11 @@ export function sendSystemMail(db: DB, cfg: Config, mail: SystemMail): string | 
   }
 }
 
+/** In outbox mode every message is a file on disk, so public sign-ups can't be allowed to write them without limit. */
+const MAX_PENDING_IN_OUTBOX = 2000;
+
 export function sendConfirmation(db: DB, cfg: Config, s: SubscriberRow): void {
+  if (cfg.mode === "outbox" && (db.prepare("SELECT COUNT(*) AS n FROM subscribers WHERE status = 'pending'").get() as { n: number }).n > MAX_PENDING_IN_OUTBOX) return;
   const pub = getPublication(db);
   const c = ctxFor(db, cfg, pub, s);
   const url = `${c.base}/confirm/${s.token}`;

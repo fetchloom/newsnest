@@ -186,8 +186,27 @@ function summary(r: EmailRow) {
   };
 }
 
-export function getEmail(db: DB, id: string, cfg?: Config) {
-  const r = db.prepare("SELECT * FROM emails WHERE id = ?").get(id) as unknown as EmailRow | undefined;
+/**
+ * What a key may see of the emails table, as an SQL condition. Full keys and the dashboard see everything. A sending key sees
+ * only the API mail it sent itself (from its own domain, if it has one): newsletter, automation and system mail is rendered per
+ * subscriber and carries their confirm, sign-in and unsubscribe links.
+ */
+function scope(key: ApiKeyInfo | undefined): { sql: string; params: string[] } {
+  if (!key || key.permission === "full") return { sql: "1 = 1", params: [] };
+  return key.domain_id
+    ? { sql: "kind = 'api' AND api_key_id = ? AND domain_id = ?", params: [key.id, key.domain_id] }
+    : { sql: "kind = 'api' AND api_key_id = ?", params: [key.id] };
+}
+
+/** Throws not-found unless this key may see the email (the same answer as for an id that doesn't exist). */
+function assertVisible(db: DB, id: string, key: ApiKeyInfo | undefined): void {
+  const sc = scope(key);
+  if (!db.prepare(`SELECT 1 FROM emails WHERE id = ? AND ${sc.sql}`).get(id, ...sc.params)) throw notFound("Email");
+}
+
+export function getEmail(db: DB, id: string, cfg?: Config, key?: ApiKeyInfo) {
+  const sc = scope(key);
+  const r = db.prepare(`SELECT * FROM emails WHERE id = ? AND ${sc.sql}`).get(id, ...sc.params) as unknown as EmailRow | undefined;
   if (!r) throw notFound("Email");
   const deliveries = db.prepare("SELECT * FROM deliveries WHERE email_id = ? ORDER BY rowid").all(id) as unknown as DeliveryRow[];
   return {
@@ -210,22 +229,24 @@ export function getEmail(db: DB, id: string, cfg?: Config) {
   };
 }
 
-export function listEmails(db: DB, query: URLSearchParams) {
+export function listEmails(db: DB, query: URLSearchParams, key?: ApiKeyInfo) {
   const kind = query.get("kind") ?? "api";
   if (!["api", "broadcast", "automation", "system", "all"].includes(kind)) throw validation(`"kind" must be api, broadcast, automation, system or all`);
   const limit = Math.min(Math.max(Number(query.get("limit") ?? 20) || 20, 1), 100);
   const after = query.get("after");
-  const cursor = after ? (db.prepare("SELECT rowid AS r FROM emails WHERE id = ?").get(after) as { r: number } | undefined) : undefined;
+  const sc0 = scope(key);
+  const cursor = after ? (db.prepare(`SELECT rowid AS r FROM emails WHERE id = ? AND ${sc0.sql}`).get(after, ...sc0.params) as { r: number } | undefined) : undefined;
   if (after && !cursor) throw validation(`Unknown "after" id`);
 
-  const where = [kind === "all" ? "" : "kind = ?", cursor ? "rowid < ?" : ""].filter(Boolean);
-  const args: unknown[] = [...(kind === "all" ? [] : [kind]), ...(cursor ? [cursor.r] : []), limit + 1];
+  const sc = scope(key);
+  const where = [sc.sql, kind === "all" ? "" : "kind = ?", cursor ? "rowid < ?" : ""].filter(Boolean);
+  const args: unknown[] = [...sc.params, ...(kind === "all" ? [] : [kind]), ...(cursor ? [cursor.r] : []), limit + 1];
   const rows = db.prepare(`SELECT * FROM emails ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY rowid DESC LIMIT ?`).all(...(args as never[])) as unknown as EmailRow[];
   return { object: "list", has_more: rows.length > limit, data: rows.slice(0, limit).map(summary) };
 }
 
-export function listEmailEvents(db: DB, id: string) {
-  if (!db.prepare("SELECT 1 FROM emails WHERE id = ?").get(id)) throw notFound("Email");
+export function listEmailEvents(db: DB, id: string, key?: ApiKeyInfo) {
+  assertVisible(db, id, key);
   const rows = db.prepare("SELECT * FROM events WHERE email_id = ? ORDER BY rowid").all(id) as unknown as
     { id: string; type: string; recipient: string | null; data: string; created_at: number }[];
   return {
@@ -236,27 +257,26 @@ export function listEmailEvents(db: DB, id: string) {
 
 // ---- changing ----------------------------------------------------------------
 /** Only emails that no delivery attempt has touched yet can be changed. */
-function assertUntouched(db: DB, id: string): void {
-  const r = db.prepare("SELECT 1 FROM emails WHERE id = ?").get(id);
-  if (!r) throw notFound("Email");
+function assertUntouched(db: DB, id: string, key?: ApiKeyInfo): void {
+  assertVisible(db, id, key);
   const started = db.prepare("SELECT 1 FROM deliveries WHERE email_id = ? AND (status NOT IN ('queued', 'suppressed') OR attempts > 0)").get(id);
   if (started) throw new ApiError(409, "not_cancelable", "This email has already started sending");
 }
 
-export function cancelEmail(db: DB, id: string) {
+export function cancelEmail(db: DB, id: string, key?: ApiKeyInfo) {
   return tx(db, () => {
-    assertUntouched(db, id);
+    assertUntouched(db, id, key);
     db.prepare("UPDATE deliveries SET status = 'canceled', updated_at = ? WHERE email_id = ? AND status = 'queued'").run(now(), id);
     emit(db, id, "email.canceled", null);
     return { id, object: "email", canceled: true };
   });
 }
 
-export function rescheduleEmail(db: DB, id: string, body: Record<string, unknown>) {
+export function rescheduleEmail(db: DB, id: string, body: Record<string, unknown>, key?: ApiKeyInfo) {
   const at = now();
   const scheduledAt = parseScheduledAt(body.scheduled_at, at);
   return tx(db, () => {
-    assertUntouched(db, id);
+    assertUntouched(db, id, key);
     db.prepare("UPDATE emails SET scheduled_at = ?, last_event = ? WHERE id = ?").run(scheduledAt, scheduledAt ? "email.scheduled" : "email.queued", id);
     db.prepare("UPDATE deliveries SET next_attempt_at = ?, updated_at = ? WHERE email_id = ? AND status = 'queued'").run(scheduledAt ?? at, at, id);
     return { id, object: "email", scheduled_at: iso(scheduledAt) };

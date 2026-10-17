@@ -38,10 +38,15 @@ const abs = (u: string, base: string): string => (u.startsWith("/") ? base + u :
 // ---- merge tags: {{first_name}}, {{first_name | there}} -------------------------
 const TAG = /\{\{\s*([a-z0-9_.]+)\s*(?:\|\s*([^}]*?))?\s*\}\}/gi;
 
+/** What a link or image address may be once merge tags are filled in. Subscribers choose some of those values (first_name), so a whole-URL tag can't be allowed to turn into javascript: or data:. */
+const SAFE_TARGET = /^(https?:\/\/|mailto:|tel:|\/(?![/\\])|#)/i;
+
 export function merge(input: string, vars: Record<string, string>, escape = false): string {
-  return input.replace(TAG, (_, key: string, fallback?: string) => {
-    const v = vars[key.toLowerCase()];
+  return input.replace(TAG, (_, key: string, fallback: string | undefined, at: number) => {
+    const k = key.toLowerCase();
+    const v = Object.hasOwn(vars, k) ? vars[k] : undefined; // {{constructor}} is an unknown tag, not Object's constructor
     const out = v !== undefined && v !== "" ? v : fallback ?? "";
+    if (escape && out && /(?:href|src)="$/i.test(input.slice(Math.max(0, at - 6), at)) && !SAFE_TARGET.test(out)) return "#";
     return escape ? esc(out) : out;
   });
 }
@@ -148,6 +153,7 @@ function renderBlock(b: Block, c: RenderCtx): string {
       return `<${tag} style="margin:0 0 16px;padding-left:22px;font:16px/1.65 ${font};color:${p.text};">${pr.items.map((i: string) => `<li style="margin:0 0 6px;">${esc(i)}</li>`).join("")}</${tag}>`;
     }
     case "code": return `<pre style="font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;background:${p.surface};color:${p.text};padding:14px 16px;border-radius:8px;overflow:auto;margin:0 0 16px;white-space:pre-wrap;">${esc(pr.text)}</pre>`;
+    // The owner's own HTML, which is trusted. On the website the filter below only drops obvious <script> tags and on* attributes; it is not a sanitiser.
     case "html": return c.mode === "web" ? pr.html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "") : pr.html;
     case "social": {
       const links = pr.links.map((l: { network: string; url: string }) => `<a href="${esc(l.url)}" style="color:${brand};text-decoration:none;font:600 14px ${font};margin-right:16px;">${esc(l.network[0].toUpperCase() + l.network.slice(1))}</a>`).join("");

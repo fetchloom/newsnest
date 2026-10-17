@@ -22,17 +22,20 @@ const NOTICE_TEXT: Record<string, string> = { confirmed: "New subscriber", unsub
  * opened, someone subscribed...), and "notice" for things worth a toast. It polls only while a tab is connected.
  */
 export function createLive(db: DB) {
-  const clients = new Set<ServerResponse>();
+  /** Each stream with the session token it was opened with, so a sign-out or password change ends it. */
+  const clients = new Map<ServerResponse, string | undefined>();
   let timer: NodeJS.Timeout | undefined;
   let print = "";
   let lastEvent = 0;
   let ticks = 0;
 
   const send = (event: string, data: unknown): void => {
-    for (const res of clients) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    for (const res of clients.keys()) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
   function tick(): void {
+    for (const [res, token] of clients) if (!sessionValid(db, token)) { clients.delete(res); res.end(); } // the client reconnects, gets a 401 and shows the sign-in screen
+    if (clients.size === 0) { clearInterval(timer); timer = undefined; return; }
     try {
       const fp = (db.prepare(FINGERPRINT).get() as { fp: string }).fp;
       if (fp !== print) { print = fp; send("change", {}); }
@@ -40,12 +43,13 @@ export function createLive(db: DB) {
       lastEvent = (db.prepare("SELECT COALESCE(MAX(id), 0) AS m FROM subscriber_events").get() as { m: number }).m;
       if (rows.length > 3) send("notice", { text: `${rows.length} subscriber changes` });
       else for (const r of rows) send("notice", { text: `${NOTICE_TEXT[r.type]}: ${r.email}` });
-      if (++ticks % (PING_MS / POLL_MS) === 0) for (const res of clients) res.write(": ping\n\n"); // keeps proxies from closing an idle stream
+      if (++ticks % (PING_MS / POLL_MS) === 0) for (const res of clients.keys()) res.write(": ping\n\n"); // keeps proxies from closing an idle stream
     } catch { /* the database is closing */ }
   }
 
   return function handle(req: IncomingMessage, res: ServerResponse): void {
-    if (!sessionValid(db, parseCookies(req.headers.cookie)[COOKIE])) { res.writeHead(401, { "content-type": "application/json" }); res.end('{"error":{"code":"unauthorized"}}'); return; }
+    const token = parseCookies(req.headers.cookie)[COOKIE];
+    if (!sessionValid(db, token)) { res.writeHead(401, { "content-type": "application/json" }); res.end('{"error":{"code":"unauthorized"}}'); return; }
     if (clients.size >= MAX_CLIENTS) { res.writeHead(429); res.end(); return; }
     res.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", connection: "keep-alive", "x-accel-buffering": "no" });
     res.socket?.setNoDelay(true);
@@ -55,7 +59,7 @@ export function createLive(db: DB) {
       lastEvent = (db.prepare("SELECT COALESCE(MAX(id), 0) AS m FROM subscriber_events").get() as { m: number }).m;
       timer = setInterval(tick, POLL_MS);
     }
-    clients.add(res);
+    clients.set(res, token);
     res.write("event: hello\ndata: {}\n\n");
     res.on("close", () => {
       clients.delete(res);

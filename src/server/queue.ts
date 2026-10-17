@@ -10,6 +10,7 @@ import { broadcastTick } from "./newsletter/broadcast.ts";
 import { renderStoredEmail } from "./newsletter/delivery.ts";
 import { markBounced } from "./newsletter/subscribers.ts";
 import { automationTick } from "./newsletter/automations.ts";
+import { purgeStale } from "./newsletter/maintenance.ts";
 import { now } from "./ids.ts";
 import { build } from "./mime.ts";
 import type { Address } from "./mime.ts";
@@ -20,6 +21,12 @@ import type { Fetch } from "./webhooks.ts";
 export interface Transport {
   deliver(msg: { from: string; to: string; raw: string; id: string }): Promise<{ response: string; delivered: boolean }>;
 }
+
+/** How long one pass waits for its deliveries before moving on; a slow one keeps going in the background. */
+const PASS_WAIT_MS = 2000;
+/** Safety net around a transport that never answers. The SMTP client has its own, shorter deadline. */
+const DELIVERY_TIMEOUT_MS = 4 * 60_000;
+const MAX_IN_FLIGHT = 40;
 
 const BACKOFF_MS = [30_000, 2 * 60_000, 10 * 60_000, 3600_000, 4 * 3600_000];
 export const MAX_ATTEMPTS = BACKOFF_MS.length + 1;
@@ -78,6 +85,9 @@ export function startQueue(db: DB, cfg: Config, transport: Transport = makeTrans
   };
 
   let current: Promise<void> | null = null;
+  let lastPurge = 0;
+  /** Deliveries still running. They outlive the pass that started them, so one stuck server can't hold up everything else. */
+  const inFlight = new Set<Promise<void>>();
 
   /** Runs one pass. If a pass is already running, asks it to go round again and waits for it. */
   function tick(): Promise<void> {
@@ -92,18 +102,30 @@ export function startQueue(db: DB, cfg: Config, transport: Transport = makeTrans
       do {
         again = false;
         const at = now();
+        if (at - lastPurge > 3600_000) { lastPurge = at; try { purgeStale(db, cfg, at); } catch (e) { console.error("cleanup:", e); } }
         const planned = broadcastTick(db, cfg);
         const automated = automationTick(db, cfg);
         const claim = (bulk: number, limit: number): Claimed[] => limit <= 0 ? [] : db.prepare(`
           UPDATE deliveries SET status = 'sending', attempts = attempts + 1, updated_at = ?
           WHERE id IN (SELECT id FROM deliveries WHERE status = 'queued' AND bulk = ? AND next_attempt_at <= ? ORDER BY next_attempt_at LIMIT ?)
           RETURNING id, email_id, recipient, attempts`).all(at, bulk, at, limit) as unknown as Claimed[];
-        const bulk = claim(1, Math.min(10, bulkBudget()));
+        const room = Math.max(0, MAX_IN_FLIGHT - inFlight.size);
+        const direct = claim(0, Math.min(10, room));
+        const bulk = claim(1, Math.min(10, bulkBudget(), room - direct.length));
         bulkUsed += bulk.length;
-        const claimed = [...claim(0, 10), ...bulk];
-        await Promise.allSettled(claimed.map((d) => deliverOne(db, cfg, transport, d)));
+        const claimed = [...direct, ...bulk];
+        const started = claimed.map((d) => {
+          const p: Promise<void> = deliverOne(db, cfg, transport, d)
+            .catch((e) => console.error("delivery:", e))
+            .finally(() => { inFlight.delete(p); });
+          inFlight.add(p);
+          return p;
+        });
+        let waitTimer: NodeJS.Timeout | undefined;
+        await Promise.race([Promise.all(started), new Promise((r) => { waitTimer = setTimeout(r, PASS_WAIT_MS); })]);
+        clearTimeout(waitTimer);
         const hooks = await processWebhooks(db, doFetch);
-        if (claimed.length || hooks || planned || automated) again = bulkBudget() > 0 || claimed.length > bulk.length; // more work may be waiting
+        if (claimed.length || hooks || planned || automated) again = bulkBudget() > 0 || direct.length > 0; // more work may be waiting
       } while (again);
     } finally {
       running = false;
@@ -115,7 +137,12 @@ export function startQueue(db: DB, cfg: Config, transport: Transport = makeTrans
   return {
     tick,
     kick: () => void setImmediate(() => !stopped && void tick().catch((e) => console.error("queue:", e))),
-    stop: async () => { clearInterval(timer); stopped = true; await current; },
+    stop: async () => {
+      clearInterval(timer);
+      stopped = true;
+      await current;
+      await Promise.race([Promise.allSettled([...inFlight]), new Promise((r) => setTimeout(r, 10_000).unref())]); // don't close the database under a running delivery
+    },
   };
 }
 
@@ -152,7 +179,11 @@ async function deliverOne(db: DB, cfg: Config, transport: Transport, d: Claimed)
   }
 
   try {
-    const r = await transport.deliver({ from: email.from_email, to: d.recipient, raw, id: d.id });
+    let timer: NodeJS.Timeout | undefined;
+    const r = await Promise.race([
+      transport.deliver({ from: email.from_email, to: d.recipient, raw, id: d.id }),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new SMTPError("Delivery timed out")), DELIVERY_TIMEOUT_MS); }),
+    ]).finally(() => clearTimeout(timer));
     tx(db, () => {
       db.prepare("UPDATE deliveries SET status = ?, response = ?, last_error = NULL, updated_at = ? WHERE id = ?")
         .run(r.delivered ? "delivered" : "sent", r.response, now(), d.id);

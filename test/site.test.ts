@@ -121,13 +121,20 @@ describe("website", () => {
     const mail = await h.waitFor(() => h.smtp.messages.find((m) => m.to[0] === "reader@example.org" && /sign-in link/.test(subjectOf(m.data))), 4000);
     const link = /href="(http[^"]+\/magic\/[A-Za-z0-9_-]+)"/.exec(bodyOf(mail.data))![1];
 
-    const magic = await pub(new URL(link).pathname);
+    const ask = await pub(new URL(link).pathname);
+    assert.equal(ask.status, 200);
+    assert.match(await ask.text(), /<button[^>]*>Sign in<\/button>/);
+    assert.equal(ask.headers.get("set-cookie"), null, "a GET (mail scanner) neither signs in nor uses up the link");
+    assert.equal(ask.headers.get("cache-control"), "private, no-store");
+    assert.match(ask.headers.get("vary") ?? "", /Cookie/i);
+    const magic = await pub(new URL(link).pathname, { method: "POST" });
     assert.equal(magic.status, 302);
     assert.equal(magic.headers.get("location"), `/p/${gated.slug}`);
     const cookie = (magic.headers.get("set-cookie") ?? "").split(";")[0];
     assert.match(magic.headers.get("set-cookie") ?? "", /HttpOnly/);
     assert.match(await (await pub(`/p/${gated.slug}`, { headers: { cookie } })).text(), /SECRET MEMBERS CONTENT/);
-    assert.equal((await pub(new URL(link).pathname)).status, 404, "a magic link works once");
+    assert.equal((await pub(new URL(link).pathname, { method: "POST" })).status, 404, "a magic link works once");
+    assert.equal((await pub(new URL(link).pathname)).status, 404);
     assert.ok(!(await (await pub(`/p/${gated.slug}`)).text()).includes("SECRET MEMBERS CONTENT"), "other visitors still see the gate");
   });
 
@@ -136,7 +143,7 @@ describe("website", () => {
     await pub("/login", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "email=reader%40example.org&redirect=https%3A%2F%2Fevil.example" });
     const mail = await h.waitFor(() => h.smtp.messages.slice(seen).find((m) => m.to[0] === "reader@example.org" && /sign-in link/.test(subjectOf(m.data))), 4000);
     const link = /href="(http[^"]+\/magic\/[A-Za-z0-9_-]+)"/.exec(bodyOf(mail.data))![1];
-    assert.equal((await pub(new URL(link).pathname)).headers.get("location"), "/");
+    assert.equal((await pub(new URL(link).pathname, { method: "POST" })).headers.get("location"), "/");
   });
 });
 
